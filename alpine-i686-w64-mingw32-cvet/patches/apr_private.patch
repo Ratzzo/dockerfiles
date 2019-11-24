@@ -1,0 +1,22 @@
+--- apr_private.h
++++ /opt/shared/asd/apr_private.h
+@@ -140,8 +140,8 @@
+ #if APR_HAVE_IPV6
+ #define HAVE_GETADDRINFO 1
+ #define HAVE_GETNAMEINFO 1
+-#define HAVE_IF_INDEXTONAME 1
+-#define HAVE_IF_NAMETOINDEX 1
++//#define HAVE_IF_INDEXTONAME
++//#define HAVE_IF_NAMETOINDEX
+ #endif
+ 
+ /* MSVC 7.0 introduced _strtoi64 */
+@@ -159,7 +159,7 @@
+ #if defined(_WIN32_WCE)
+ #define APR_OFF_T_STRFN         strtol
+ #else
+-#define APR_OFF_T_STRFN         strtoi
++#define APR_OFF_T_STRFN         _strtoi64
+ #endif
+ #endif
+ 

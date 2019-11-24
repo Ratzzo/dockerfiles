@@ -1,0 +1,50 @@
+--- apr_arch_misc.h
++++ /opt/shared/asd/apr_arch_misc.h
+@@ -28,6 +28,8 @@
+ #include "apr_errno.h"
+ #include "apr_getopt.h"
+ 
++#include <ifdef.h>
++
+ #if APR_HAVE_STDIO_H
+ #include <stdio.h>
+ #endif
+@@ -47,9 +49,9 @@
+ #include <tlhelp32.h>
+ #endif
+ 
+-#if defined(HAVE_IF_INDEXTONAME) && defined(_MSC_VER)
+-#include <Iphlpapi.h>
+-#endif
++//#if defined(HAVE_IF_INDEXTONAME) && defined(_MSC_VER)
++//#include <Iphlpapi.h>
++//#endif
+ 
+ struct apr_other_child_rec_t {
+     apr_pool_t *p;
+@@ -492,16 +494,16 @@
+ APR_DECLARE_LATE_DLL_FUNC(DLL_IPHLPAPI, NET_IFINDEX, WINAPI, if_nametoindex, 0, (
+     IN PCSTR InterfaceName),
+     (InterfaceName));
+-#define if_nametoindex apr_winapi_if_nametoindex
++#define if_nametoindex
+ 
+-#ifdef if_indextoname
+-#undef if_indextoname
+-#endif
+-APR_DECLARE_LATE_DLL_FUNC(DLL_IPHLPAPI, PCHAR, NETIOAPI_API_, if_indextoname, 0, (
+-    NET_IFINDEX InterfaceIndex,
+-    PCHAR       InterfaceName),
+-    (InterfaceIndex, InterfaceName));
+-#define if_indextoname apr_winapi_if_indextoname
++//#ifdef if_indextoname
++//#undef if_indextoname
++//#endif
++//APR_DECLARE_LATE_DLL_FUNC(DLL_IPHLPAPI, PCHAR, NETIOAPI_API_, if_indextoname, 0, (
++//    NET_IFINDEX InterfaceIndex,
++//    PCHAR       InterfaceName),
++//    (InterfaceIndex, InterfaceName));
++//#define if_indextoname
+ 
+ #endif /* !defined(_WIN32_WCE) */
+ 
