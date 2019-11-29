@@ -1,0 +1,1 @@
+docker run -it -v ${PWD}/../shared:/opt/shared -v arm-bin:/opt/arm-root/bin -v arm-lib:/opt/arm-root/lib -v arm-usr:/opt/arm-root/usr ratzzo/alpine-arm-linux-gnueabihf sh

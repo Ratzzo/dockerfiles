@@ -1,0 +1,8 @@
+#!/bin/sh
+
+JOB=alpine-arm-volume
+docker volume create arm-usr
+docker volume create arm-bin
+docker volume create arm-lib
+
+docker run --name=$JOB -v /opt/shared:/opt/shared -v arm-usr:/usr -v arm-bin:/bin -v arm-lib:/lib -it ratzzo/$JOB 

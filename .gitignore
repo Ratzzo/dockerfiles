@@ -1,2 +1,2 @@
 shared/*
-!shared/build_i686_w64_mingw32.sh
+!shared/.keep
