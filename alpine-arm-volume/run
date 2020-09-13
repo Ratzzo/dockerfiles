@@ -1,8 +1,32 @@
 #!/bin/sh
 
 JOB=alpine-arm-volume
+docker volume rm arm-usr
+docker volume rm arm-bin
+docker volume rm arm-lib
+
 docker volume create arm-usr
 docker volume create arm-bin
 docker volume create arm-lib
 
-docker run --name=$JOB -v /opt/shared:/opt/shared -v arm-usr:/usr -v arm-bin:/bin -v arm-lib:/lib -it ratzzo/$JOB 
+CURRENT_UID=$(id -u $USER)
+CURRENT_GID=$(id -g $USER)
+
+#--user=$CURRENT_UID:$CURRENT_GID
+
+docker container rm $JOB
+docker run 																	\
+	--cap-add=SYS_PTRACE 													\
+	-e ASUID=$CURRENT_UID 													\
+	-e ASGID=$CURRENT_GID 													\
+	--name=$JOB 															\
+	-p 6969:6969															\
+	-v /opt/shared:/opt/shared 												\
+	-v arm-usr:/usr 														\
+	-v arm-bin:/bin 														\
+	-v arm-lib:/lib 														\
+	-it ratzzo/$JOB ls
+	
+	
+#	--security-opt seccomp=unconfined --security-opt apparmor=unconfined 	
+#	--privileged 	

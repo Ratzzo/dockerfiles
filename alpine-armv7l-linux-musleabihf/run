@@ -1,7 +1,8 @@
 #!/bin/sh
 
 JOB=alpine-armv7l-linux-musleabihf
-docker run --name=$JOB -it -v /opt/shared:/opt/shared \
+docker container rm $JOB
+docker run --name=$JOB --user=$(id -u $USER):$(id -g $USER) -it -v /opt/shared:/opt/shared \
 -v arm-bin:/opt/arm-root/bin \
 -v arm-lib:/opt/arm-root/lib \
 -v arm-usr:/opt/arm-root/usr \
