@@ -12,6 +12,7 @@ INTERNAL_USER=http
 INTERNAL_RUNDIR=/home/${INTERNAL_USER}/run
 INTERNAL_CONFIG_DIR=${INTERNAL_RUNDIR}/config
 
+#docker exec nginx-service  su -s /bin/sh http -c "fcgiwrap -s unix:/home/http/run/fcgiwrap.socket"
 RUNAS_INTERNAL=${DOCKER} exec ${CONTAINER_NAME} su -s /bin/sh ${INTERNAL_USER} -c
 
 NGINX_DIRECTIVES=pid ${INTERNAL_RUNDIR}/nginx.pid; error_log stderr;

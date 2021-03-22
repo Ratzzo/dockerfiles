@@ -1,0 +1,11 @@
+JOB_BASE_NAME=alpine-gcc
+IMAGE=ratzzo/alpine-gcc
+
+docker container kill ${JOB_BASE_NAME} || true
+docker container rm ${JOB_BASE_NAME} || true
+#docker run -it --name=${JOB_BASE_NAME}  			\
+#	-v /opt/keys/http_git/.ssh:/root/.ssh   		\
+#	-v /opt/container/build/.ssh:/home/build/.ssh	\
+#	-v /opt/container/host/:/opt/host/				\
+#	-p 2222:22 ${IMAGE} bash -c 'chown build:build -R /home/build/.ssh;/usr/bin/sshd -D -h /opt/host/host_key & bash'
+docker run -it --name=${JOB_BASE_NAME} -v /opt/dockerimages/alpine-gcc/cvet:/opt/cvet ${IMAGE} sh -c "cd /opt/cvet && sh" #-c "cd /opt/cvet && make"

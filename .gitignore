@@ -1,2 +1,3 @@
 shared/*
 !shared/.keep
+run/

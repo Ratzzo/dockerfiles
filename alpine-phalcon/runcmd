@@ -1,0 +1,30 @@
+sources_dir=/media/mmcblk0p2/srv/ratzzo.net/
+container_name="alpine-ratzzo.net"
+image_name="ratzzo/alpine-phalcon"
+#this will persist the files thru lbu
+persist_dir=/srv/persist/ratzzo.net/
+letsencrypt_dir=/etc/letsencrypt
+
+docker run \
+-v $sources_dir:/opt/sources \
+-v $persist_dir:/opt/persist \
+-v $letsencrypt_dir:/etc/letsencrypt \
+--name $container_name \
+--network="host" \
+--rm -dit $image_name \
+sh -c "\
+chown nginx:nginx /opt && \
+chown nginx:nginx /opt/sources &&\
+rm -rf /etc/rsyslog.conf && \
+rm -rf /etc/nginx && \
+rm -rf /etc/php7 && \
+rm -rf /srv && \
+ln -s /opt/sources/etc/rsyslog.conf /etc/rsyslog.conf && \
+ln -s /opt/sources/etc/nginx /etc/nginx && \
+ln -s /opt/sources/etc/php7 /etc/php7 && \
+ln -s /opt/sources /srv && \
+service rsyslog start && \
+service nginx start && \
+service php-fpm7 start && \
+sh \
+"
