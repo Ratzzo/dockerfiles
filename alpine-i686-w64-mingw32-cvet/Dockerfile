@@ -1,5 +1,5 @@
 FROM ratzzo/alpine-i686-w64-mingw32
-
+#docker build . --squash -t ratzzo/alpine-i686-w64-mingw32-cvet
 ENV PREFIX=/opt/mingw32/
 
 ##apr
@@ -93,6 +93,31 @@ ENV RAPIDJSON_URL=https://github.com/Tencent/rapidjson.git
 RUN cd /opt/ && git clone --depth=1 ${RAPIDJSON_URL} ${RAPIDJSON}
 RUN cd /opt/${RAPIDJSON} && cp -r include ${PREFIX}
 
-##cleanup
-RUN cd /opt/ && rm -r ${APR} ${ZLIB} ${LIBPNG} ${LIBJPEG} ${FLTK} ${OPENSSL} ${LIBCURL} ${LIBLEPT} ${RAPIDJSON}
+##luajit
+# For some reason luajit depends on host and guest architecture pointer size to be equal in order to build
+# in this case we are cross compiling from 64 bit alpine to 32bit mingw without a multilib gcc (no -m32)
+# So, we bootstrap a 32bit alpine and then compile from there luajit's minilua and buildvm, then continue the compilation
+# in the 64bit host (see luajit.sh)
+ENV LUAJIT=luajit
+ENV LUAJIT_SCRIPT=luajit.sh
+ENV LUAJIT_REPO=https://github.com/LuaJIT/LuaJIT.git
+ENV LUAJIT_BRANCH=v2.0
+ENV ALPINE32_ROOT=/opt/alpine32
+ENV LUAJIT_BUILD_ROOT=${ALPINE32_ROOT}/opt
 
+#bootstrap 32bit alpine root
+RUN mkdir ${ALPINE32_ROOT} && apk --arch x86 -X https://dl-cdn.alpinelinux.org/alpine/latest-stable/main/ -U --allow-untrusted --root ${ALPINE32_ROOT} --initdb add alpine-base gcc make musl-dev
+RUN cd ${LUAJIT_BUILD_ROOT} && git clone --depth=1 --branch=${LUAJIT_BRANCH} ${LUAJIT_REPO} ${LUAJIT}
+ADD ${LUAJIT_SCRIPT} ${LUAJIT_BUILD_ROOT}/${LUAJIT}/
+run cd ${LUAJIT_BUILD_ROOT}/${LUAJIT}; chmod +x luajit.sh; ./luajit.sh
+
+##sqlite
+ENV SQLITE=sqlite
+ENV SQLITE_FILE=sqlite-autoconf-3360000.tar.gz
+ENV SQLITE_URL=https://sqlite.org/2021/
+
+RUN cd opt/ && wget ${SQLITE_URL}${SQLITE_FILE} && tar xvf ${SQLITE_FILE} && rm ${SQLITE_FILE}
+RUN cd opt/sqlite-autoconf-3360000 && ./configure --host=i686-w64-mingw32 --prefix=${PREFIX} && make -j4 && make install
+
+##cleanup
+#RUN rm -r ${ALPINE32_ROOT} && cd /opt/ && rm -r ${APR} ${ZLIB} ${LIBPNG} ${LIBJPEG} ${FLTK} ${OPENSSL} ${LIBCURL} ${LIBLEPT} ${RAPIDJSON}
