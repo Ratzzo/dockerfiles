@@ -154,12 +154,12 @@ then
 			--enable-lto --disable-dw2-exceptions \
 			--disable-nls --enable-version-specific-runtime-libs \
 			--enable-targets=i686-w64-mingw32 --enable-checking=release
-		make -j4 all-gcc
+		make -j$THREADS all-gcc
 		make -j4 install-gcc
 		cd ..
 	else
 		cd $OUTPUT_FOLDER
-		make -j4 install-gcc
+		make -j install-gcc
 		cd ..
 	fi
 	
@@ -196,7 +196,7 @@ then
 		$BASEDIR/$CURRENT_FOLDER/configure --prefix=/usr/${_target} \
 			--host=${_target} --enable-wildcard \
 			--enable-lib32
-		make -j4
+		make -j$THREADS
 		make -j4 install
 		cd ..
 	else
@@ -236,7 +236,7 @@ then
 		$BASEDIR/$CURRENT_FOLDER/mingw-w64-libraries/winpthreads/configure --prefix=/usr/${_target} \
 		--host=${_target} --enable-static --enable-shared
 		
-		make -j4
+		make -j$THREADS
 		make -j4 install
 		cd ..
 	else
@@ -314,7 +314,7 @@ then
 				--enable-lto --disable-dw2-exceptions --enable-libgomp \
 				--enable-checking=release --disable-multilib
 
-		make -j4
+		make -j$THREADS
 		make install
 		cd ..
 	else

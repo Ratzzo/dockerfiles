@@ -1,6 +1,7 @@
 FROM ratzzo/alpine-gcc
 
-RUN apk add --no-cache automake gettext bison flex gperf intltool libtool lzip openssl xz p7zip gdk-pixbuf && mkdir -p /opt/shared
+ENV THREADS=20
+RUN echo -e "https://dl-cdn.alpinelinux.org/alpine/edge/testing" >> /etc/apk/repositories && apk add --no-cache automake gettext bison flex gperf intltool libtool lzip openssl xz p7zip gdk-pixbuf mono && mkdir -p /opt/shared
 ADD scripts/ /opt/shared/
 RUN cd /opt/shared && ./build_i686_w64_mingw32.sh download
 RUN cd /opt/shared && ./build_i686_w64_mingw32.sh build
