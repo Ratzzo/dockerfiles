@@ -1,9 +1,11 @@
 #!/bin/sh
 
-GCC_VER=9.2.0
-BINUTILS_VER=2.33.1
-LINUX_VER=v5.3
-GLIBC_VER=release/2.30/master
+GCC_VER=10.2.0
+BINUTILS_VER=2.36.1
+LINUX_VER=v5.11
+GLIBC_VER=release/2.33/master
+GMP_VER=6.2.1
+NTHREADS=24
 
 _target=arm-linux-gnueabihf
 
@@ -69,7 +71,7 @@ then
 			--enable-deterministic-archives \
 			--disable-nls \
 			--disable-werror
-		make -j4
+		make -j$NTHREADS
 		make install
 		cd ..
 	else
@@ -149,12 +151,12 @@ then
 			--enable-lto --disable-dw2-exceptions \
 			--disable-nls --enable-version-specific-runtime-libs \
 			--with-arch=armv7-a --with-fpu=neon --enable-checking=release
-		make -j4 all-gcc
-		make -j4 install-gcc
+		make -j$NTHREADS all-gcc
+		make -j$NTHREADS install-gcc
 		cd ..
 	else
 		cd $OUTPUT_FOLDER
-		make -j4 install-gcc
+		make -j$NTHREADS install-gcc
 		cd ..
 	fi
 	
@@ -184,7 +186,7 @@ then
 		cd $OUTPUT_FOLDER
 		$BASEDIR/$CURRENT_FOLDER/configure --prefix=/usr/${_target} --build=$MACHTYPE --host=${_target} --target=${_target} --with-headers=/usr/${_target}/include --disable-multilib libc_cv_forced_unwind=yes
 		make install-bootstrap-headers=yes install-headers
-		make -j4 csu/subdir_lib
+		make -j$NTHREADS csu/subdir_lib
 		install csu/crt1.o csu/crti.o csu/crtn.o /usr/${_target}/lib
 		${_target}-gcc -nostdlib -nostartfiles -shared -x c /dev/null -o /usr/${_target}/lib/libc.so
 		touch /usr/${_target}/include/gnu/stubs.h
@@ -225,8 +227,8 @@ then
 	#then
 	mkdir -p $OUTPUT_FOLDER
 	cd $OUTPUT_FOLDER
-	make -j4 all-target-libgcc
-	make -j4 install-target-libgcc
+	make -j$NTHREADS all-target-libgcc
+	make -j$NTHREADS install-target-libgcc
 	cd ..
 	#else
 	#	cd $OUTPUT_FOLDER
@@ -256,7 +258,7 @@ then
 
 		mkdir -p $OUTPUT_FOLDER
 		cd $OUTPUT_FOLDER
-		make -j4
+		make -j$NTHREADS
 		make install
 		cd ..
 fi
@@ -302,12 +304,12 @@ then
 				--enable-checking=release --disable-multilib \
 				--with-arch=armv7-a --with-fpu=neon --disable-libsanitizer
 
-		make -j4
+		make -j$NTHREADS
 		make install
 		cd ..
 	else
 		cd $OUTPUT_FOLDER
-		make -j4 install
+		make -j$NTHREADS install
 		cd ..
 	fi
 fi
