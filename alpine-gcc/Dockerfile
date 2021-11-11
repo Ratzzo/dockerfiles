@@ -1,7 +1,7 @@
 FROM alpine:edge
 #docker build -t ratzzo/alpine-gcc .
 
-RUN apk add --no-cache build-base xvfb git openssh curl-dev curl autoconf xorg-server-dev libjpeg man rsync
+RUN apk add --no-cache build-base xvfb git openssh curl-dev curl autoconf xorg-server-dev libjpeg mandoc rsync
 
 #build custom fltk
 RUN cd /opt && git clone --depth=1 https://Ratzzo@bitbucket.org/Ratzzo/fltk.git
