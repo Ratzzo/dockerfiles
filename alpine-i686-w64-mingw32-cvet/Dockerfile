@@ -119,5 +119,7 @@ ENV SQLITE_URL=https://sqlite.org/2021/
 RUN cd opt/ && wget ${SQLITE_URL}${SQLITE_FILE} && tar xvf ${SQLITE_FILE} && rm ${SQLITE_FILE}
 RUN cd opt/sqlite-autoconf-3360000 && ./configure --host=i686-w64-mingw32 --prefix=${PREFIX} && make -j4 && make install
 
+RUN apk add --no-cache zip
+
 ##cleanup
 #RUN rm -r ${ALPINE32_ROOT} && cd /opt/ && rm -r ${APR} ${ZLIB} ${LIBPNG} ${LIBJPEG} ${FLTK} ${OPENSSL} ${LIBCURL} ${LIBLEPT} ${RAPIDJSON}
