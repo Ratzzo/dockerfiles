@@ -1,0 +1,13 @@
+This container has an alpine image with self contained openrc. 
+It clones my updater_git_stub repo and sets up an user to connect to it using ssh
+
+Files on this folder:
+- init.sh		-- This is the docker entrypoint. 
+						It starts the services and generates a ssh public/private keypair shared/id_rsa and shared/id_rsa.pub
+- run.sh		-- The preferred way of running the container
+- ssh.sh 		-- The preferred way of connecting using ssh to the container
+- shared/		-- The folder where nonvolatile shared files are stored. 
+						With the exception of the keypair which is regenerated on each start.
+
+
+
