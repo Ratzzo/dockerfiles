@@ -5,7 +5,7 @@ BINUTILS_VER=2.36.1
 LINUX_VER=v5.11
 GLIBC_VER=release/2.33/master
 GMP_VER=6.2.1
-NTHREADS=24
+NTHREADS=20
 
 _target=arm-linux-gnueabihf
 
