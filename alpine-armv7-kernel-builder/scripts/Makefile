@@ -212,6 +212,10 @@ kernel_info: $(KERNEL_OUTPUT)
 kernel_name: $(KERNEL_OUTPUT)
 	@echo $(KERNEL_NAME)
 
+kernel_menuconfig:
+	cd $(KERNEL_DIR); make -j$(NTHREADS) KCONFIG_CONFIG=$(KERNEL_CONFIG) HOSTCFLAGS=$(KERNEL_HOSTCFLAGS) ARCH=$(KERNEL_ARCH) CROSS_COMPILE=$(KERNEL_CROSS_COMPILE) menuconfig
+
+
 kernel_clean:
 	cd $(KERNEL_DIR); make -j$(NTHREADS) HOSTCFLAGS=$(KERNEL_HOSTCFLAGS) ARCH=$(KERNEL_ARCH) CROSS_COMPILE=$(KERNEL_CROSS_COMPILE) mrproper
 	make kernel_install_clean
