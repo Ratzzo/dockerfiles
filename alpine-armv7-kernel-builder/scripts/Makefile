@@ -10,15 +10,18 @@ TARGET_BOARD_BASE_CONFIG=$(SCRIPTS_DIR)/targets/$(TARGET_BOARD)
 KERNEL_FILE=linux-5.4.19.tar.xz                
 KERNEL_URL=https://cdn.kernel.org/pub/linux/kernel/v5.x/$(KERNEL_FILE)
 KERNEL_FILE_OUTPUT=$(CACHE_DIR)/$(KERNEL_FILE)
+KERNEL_INSTALL_DIR_NAME=linux-5.4.19-install
 KERNEL_DIR=$(BUILD_DIR)/linux-5.4.19
-KERNEL_INSTALL_DIR=$(KERNEL_DIR)-install
+KERNEL_INSTALL_DIR=$(BUILD_DIR)/$(KERNEL_INSTALL_DIR_NAME)
 KERNEL_OUTPUT=$(KERNEL_DIR)/arch/arm/boot/zImage
 KERNEL_CONFIG_TARGET=$(KERNEL_DIR)/.config
 KERNEL_ARCH=arm
 KERNEL_CROSS_COMPILE=arm-linux-gnueabihf-
 KERNEL_HOSTCFLAGS=-fcommon
 KERNEL_NAME_FILE=$(KERNEL_INSTALL_DIR)/.kernel_name
-KERNEL_NAME=$(shell cat $(KERNEL_NAME_FILE))
+KERNEL_NAME=$(shell cat $(KERNEL_NAME_FILE) 2> /dev/null)
+KERNEL_PREBUILT_INSTALL_ARCHIVE_OUT=$(SHARED_DIR)/kernel_prebuilt_install.tar.xz
+KERNEL_PREBUILT_INSTALL_ARCHIVE_IN=$(shell find $(KERNEL_PREBUILT_INSTALL_ARCHIVE_OUT) 2> /dev/null)
 
 
 #this will become .config file
@@ -90,7 +93,8 @@ nginx \
 openssl \
 openrc \
 dhcpcd \
-dhcpcd-openrc 
+dhcpcd-openrc \
+k3s
 
 ALPINE_ROOTFS_RC_ADD=\
 devfs sysinit           \
@@ -130,11 +134,25 @@ ALPINE_APKOVL_FILE_OUTPUT=$(BUILD_DIR)/$(ALPINE_APKOVL_FILE)
 
 .PHONY: locate kernel_archive kernel_clean kernel_install_clean kernel_rt_patch_archive alpine_minirootfs_archive binfmt_register binfmt_unregister chroot chroot_clean chroot_unpack chroot_bind chroot_unbind qemu_arm_static_nodep qemu_arm_static_nodep_clean 
 
+#FIXME: this should check if inside the chroot instead
+ifeq ($(HOST_ARCH),x86_64)
 #locate the current architecture
 locate:
 	@cat /etc/apk/arch
 
 all:
+
+clean_build:
+	rm -rf $(BUILD_DIR)/*
+
+clean_cache:
+	rm -rf $(CACHE_DIR)/*
+
+lsbuild: 
+	ls $(BUILD_DIR)
+
+lscache:
+	ls $(CACHE_DIR)
 	
 
 ## DOWNLOAD TARGETS ##
@@ -185,18 +203,37 @@ kernel_install: $(KERNEL_INSTALL_DIR)
 kernel_install_clean:
 	rm -rf $(KERNEL_INSTALL_DIR)
 
+#packs the installed kernel stuff into a tar xz
+kernel_prebuilt_install_archive: $(KERNEL_PREBUILT_INSTALL_ARCHIVE_OUT)
+
+kernel_prebuilt_install_archive_clean: 
+	rm -f $(KERNEL_PREBUILT_INSTALL_ARCHIVE_OUT)
+
 #untar and apply patch
 $(KERNEL_DIR): $(KERNEL_FILE_OUTPUT) $(KERNEL_RT_PATCH_FILE_OUTPUT)
 	cd $(BUILD_DIR); tar xvf $(KERNEL_FILE_OUTPUT); cd $(KERNEL_DIR); unxz -c $(KERNEL_RT_PATCH_FILE_OUTPUT) | patch -p1
 
 KERNEL_INSTALL_CONFIG=$(KERNEL_INSTALL_DIR)/kernel_config
 
+$(KERNEL_PREBUILT_INSTALL_ARCHIVE_OUT): $(KERNEL_INSTALL_DIR)
+	cd $(BUILD_DIR); rm -f $(KERNEL_PREBUILT_INSTALL_ARCHIVE_OUT); tar cvJf $(KERNEL_PREBUILT_INSTALL_ARCHIVE_OUT) $(KERNEL_INSTALL_DIR_NAME)
+
+$(KERNEL_NAME_FILE): $(KERNEL_INSTALL_DIR)
+
+ifeq ($(KERNEL_PREBUILT_INSTALL_ARCHIVE_IN),)
+#if prebuilt archive not found
 $(KERNEL_INSTALL_DIR): $(KERNEL_OUTPUT)
 	mkdir -p $@
 	cd $(KERNEL_DIR); make ARCH=$(KERNEL_ARCH) CROSS_COMPILE=$(KERNEL_CROSS_COMPILE) INSTALL_MOD_PATH=$(KERNEL_INSTALL_DIR) INSTALL_HDR_PATH=$(KERNEL_INSTALL_DIR) INSTALL_PATH=$(KERNEL_INSTALL_DIR) modules_install headers_install dtbs_install
 	cp $(KERNEL_CONFIG_TARGET) $(KERNEL_INSTALL_CONFIG)
 	cp $(KERNEL_OUTPUT) $(KERNEL_INSTALL_DIR)
 	echo $(shell strings $(dir $(KERNEL_OUTPUT))/Image 2> /dev/null |  grep 'Linux version' | cut -d " " -f 3) > $(KERNEL_NAME_FILE)
+else
+#if prebuilt archive found
+$(KERNEL_INSTALL_DIR): 
+	cd $(BUILD_DIR); tar xvf $(KERNEL_PREBUILT_INSTALL_ARCHIVE_OUT)
+
+endif
 
 #copy kernelconfig to .config
 $(KERNEL_CONFIG_TARGET): | $(KERNEL_DIR)
@@ -226,7 +263,7 @@ kernel_clean:
 
 .PHONY: uboot_clean uboot uboot_config_diff
 
-$(UBOOT_DIR): $(UBOOT_FILE_OUTPUT)
+$(UBOOT_DIR): $(UBOOT_FILE_OUTPUT) 
 	cd $(BUILD_DIR); tar xvf $(UBOOT_FILE_OUTPUT)
 
 $(UBOOT_BINARY_OUTPUT): $(TARGET_BOARD_BASE_CONFIG)/uboot | $(UBOOT_DIR)
@@ -316,11 +353,11 @@ chroot_unbind:
 	@echo	$@
 
 
-chroot: $(QEMU_ARM_STATIC_CHROOT_TARGET) $(KERNEL_INSTALL_DIR)
+chroot: $(QEMU_ARM_STATIC_CHROOT_TARGET)
 	@chroot $(ALPINE_MINIROOTFS_DIR) sh -c "cat /opt/scripts/minirootfs_chroot_motd; cd /opt/scripts/; sh; make alpine_rootfs_umount" || true
 	@make chroot_unbind binfmt_unregister
 
-chroot_make: $(QEMU_ARM_STATIC_CHROOT_TARGET) $(KERNEL_INSTALL_DIR)
+chroot_make: $(QEMU_ARM_STATIC_CHROOT_TARGET)
 	if [ ! $(MAKE_ARGS) ]; then exit 1; fi;
 	@chroot $(ALPINE_MINIROOTFS_DIR) sh -c "cat /opt/scripts/minirootfs_chroot_motd; cd /opt/scripts/; make $(MAKE_ARGS); make alpine_rootfs_umount" || true
 	@make chroot_unbind binfmt_unregister	
@@ -328,6 +365,8 @@ chroot_make: $(QEMU_ARM_STATIC_CHROOT_TARGET) $(KERNEL_INSTALL_DIR)
 ## END ALPINE MINIROOTFS CHROOT ##
 
 ## ROOTFS (this happens inside the armv7 chroot) ##
+
+endif
 
 ALPINE_ROOTFS_CHROOT_MOUNT=/mnt/$(ALPINE_ROOTFS_FILE)
 ALPINE_ROOTFS_CACHE_DIR=$(CACHE_DIR)/$(ALPINE_ROOTFS_FILE).$(ALPINE_ROOTFS_VERSION)
@@ -408,7 +447,7 @@ else ifeq ($(HOST_ARCH),x86_64)
 alpine_rootfs_clean:
 	make chroot_make MAKE_ARGS=$@
 
-$(ALPINE_ROOTFS_PARTS_DIR)/bootstrap: Makefile
+$(ALPINE_ROOTFS_PARTS_DIR)/bootstrap: Makefile $(KERNEL_INSTALL_DIR)
 	make chroot_make MAKE_ARGS=$@
 
 alpine_rootfs_bootstrap: $(ALPINE_ROOTFS_PARTS_DIR)/bootstrap
@@ -418,13 +457,15 @@ endif
 ## INITRAMFS ##
 #this used the alpine uboot archive "alpine-uboot-x.xx.x-armv7.tar.gz" as the source for the initramfs
 
+ifeq ($(HOST_ARCH),x86_64)
+
 .PHONY: alpine_uboot_unpack alpine_uboot_initramfs_unpack alpine_uboot_clean alpine_uboot_initramfs_clean alpine_uboot_initramfs_list alpine_uboot_initramfs_repack alpine_uboot_initramfs_repack_clean
 
-$(ALPINE_UBOOT_DIR):
+$(ALPINE_UBOOT_DIR): $(ALPINE_UBOOT_FILE_OUTPUT)
 	mkdir -p $@
 	cd $@; tar xvf $(ALPINE_UBOOT_FILE_OUTPUT)
 
-$(ALPINE_UBOOT_INITRAMFS_DIR): $(ALPINE_IMAGE_INITRAMFS_SOURCES_DIR) $(KERNEL_OUTPUT) | $(ALPINE_UBOOT_DIR)
+$(ALPINE_UBOOT_INITRAMFS_DIR): $(ALPINE_IMAGE_INITRAMFS_SOURCES_DIR) $(KERNEL_INSTALL_DIR) | $(ALPINE_UBOOT_DIR)
 	@rm -rf $(ALPINE_UBOOT_INITRAMFS_DIR)
 	@mkdir -p $@
 	@cd $(ALPINE_UBOOT_INITRAMFS_DIR); \
@@ -433,7 +474,7 @@ $(ALPINE_UBOOT_INITRAMFS_DIR): $(ALPINE_IMAGE_INITRAMFS_SOURCES_DIR) $(KERNEL_OU
 	SRC=$(ALPINE_IMAGE_INITRAMFS_SOURCES_DIR) \
 	DEST=$(ALPINE_UBOOT_INITRAMFS_DIR) \
 	KERNEL_INSTALL_DIR=$(KERNEL_INSTALL_DIR) \
-	KERNEL_NAME=$(KERNEL_NAME) \
+	KERNEL_NAME=$(shell cat $(KERNEL_NAME_FILE) 2> /dev/null) \
 	./initramfs_install
 
 $(ALPINE_IMAGE_INITRAMFS_REPACK_FILE_OUTPUT): $(ALPINE_UBOOT_INITRAMFS_DIR)
@@ -466,6 +507,9 @@ alpine_uboot_initramfs_clean:
 
 .PHONY: image image_lodevice image_lodevice_clean image_mount image_mount_clean image_uboot_install image_uboot_clean image_boot
 
+image_boot: $(ALPINE_IMAGE_PARTS_DIR)/uboot
+	ALPINE_IMAGE_FILE_OUTPUT=$(ALPINE_IMAGE_FILE_OUTPUT) \
+	$(TARGET_BOARD_BASE_CONFIG)/qemu_boot
 
 
 image: $(ALPINE_IMAGE_PARTS_DIR)/uboot
@@ -548,7 +592,7 @@ $(ALPINE_IMAGE_PARTS_DIR)/image_kernel_install: $(ALPINE_IMAGE_INITRAMFS_REPACK_
 	KERNEL_INSTALL_DIR=$(KERNEL_INSTALL_DIR) \
 	ALPINE_IMAGE_MOUNT_POINT=$(ALPINE_IMAGE_MOUNT_POINT) \
 	ALPINE_IMAGE_INITRAMFS_REPACK_FILE_OUTPUT=$(ALPINE_IMAGE_INITRAMFS_REPACK_FILE_OUTPUT) \
-	KERNEL_NAME=$(KERNEL_NAME) \
+	KERNEL_NAME=$(shell cat $(KERNEL_NAME_FILE) 2> /dev/null) \
 	TARGET_BOARD_BASE_CONFIG=$(TARGET_BOARD_BASE_CONFIG) \
 	ALPINE_ROOTFS_FILE_OUTPUT=$(ALPINE_ROOTFS_FILE_OUTPUT) \
 	ALPINE_APKOVL_FILE_OUTPUT=$(ALPINE_APKOVL_FILE_OUTPUT) \
@@ -565,9 +609,6 @@ $(ALPINE_IMAGE_PARTS_DIR)/uboot: $(ALPINE_IMAGE_PARTS_DIR)/image_kernel_install 
 	fi
 	touch $@
 
-image_boot: $(ALPINE_IMAGE_PARTS_DIR)/uboot
-	ALPINE_IMAGE_FILE_OUTPUT=$(ALPINE_IMAGE_FILE_OUTPUT) \
-	$(TARGET_BOARD_BASE_CONFIG)/qemu_boot
 
 ## END MAIN IMAGE ##
 
@@ -588,6 +629,8 @@ apkovl_clean:
 
 
 ## END APKOVL ##
+
+endif
 
 .PHONY: what_is
 
