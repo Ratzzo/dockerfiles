@@ -1,0 +1,8 @@
+#!/bin/sh
+
+if [ ! -f /proc/sys/fs/binfmt_misc/register ]
+then
+	mount -t binfmt_misc binfmt_misc /proc/sys/fs/binfmt_misc
+fi
+mkdir -p $CACHE_DIR $BUILD_DIR && cd /opt/scripts/; sh
+make -C /opt/scripts chroot_unbind binfmt_unregister

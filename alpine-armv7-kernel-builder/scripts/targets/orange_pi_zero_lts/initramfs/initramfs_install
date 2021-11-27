@@ -1,0 +1,16 @@
+#!/bin/sh
+
+if 	[ -d $SRC ] && \
+	[ -d $DEST ] && \
+	[ "$KERNEL_NAME" ] && \
+	[ -d $KERNEL_INSTALL_DIR ]
+then
+	mv $DEST/init $DEST/init.old
+	cp $SRC/init $DEST/init
+	rm -rf $DEST/lib/modules/*
+	rm -f /var/cache/misc/*modloop*.SIGN.RSA.*.pub
+	cp -r $KERNEL_INSTALL_DIR/lib/modules $DEST/lib
+else
+	echo Missing parameter.
+	exit 1
+fi

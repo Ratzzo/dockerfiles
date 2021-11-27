@@ -1,0 +1,1 @@
+docker run --privileged -v $PWD/shared:/opt/shared -v $PWD/scripts:/opt/scripts --rm -it ratzzo/alpine-orangepi-zero-kernel-builder

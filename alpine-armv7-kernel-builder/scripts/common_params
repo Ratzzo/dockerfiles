@@ -1,0 +1,16 @@
+#!/bin/sh
+
+cached_download () {
+    if [ ! $1 ] || [ ! $2 ]
+    then
+        echo "cached_download <file> <url>"
+        return 2
+    fi
+    curl -R -o "$1" -z "$1" "$2"
+    return $?
+}
+
+catch_error () {
+    RET=$?
+    if [ $RET != 0 ]; then echo Error: $0:$1 $RET ; exit; fi;   
+}

@@ -1,0 +1,83 @@
+#!/bin/sh
+
+ARCH=$(cat /etc/apk/arch)
+
+if [ "$ARCH" == "armv7" ]
+then
+	rc_add_multi() {
+		while [ $1 ]
+		do
+			echo rc_add $1 $2
+			mkdir -p $sysroot/etc/runlevels/$2
+			ln -sf /etc/init.d/$1 $sysroot/etc/runlevels/$2/$1
+			shift; shift;
+		done
+	}
+	
+	set_default_config() {
+		if 	[ "$ALPINE_ROOTFS_DEFAULT_HOSTNAME" ] && \
+			[ "$ALPINE_ROOTFS_DEFAULT_USER" ] && \
+			[ "$ALPINE_ROOTFS_DEFAULT_PASSWORD" ] && \
+			[ "$ALPINE_ROOTFS_DEFAULT_ROOT_PASSWORD" ]
+		then
+			echo -e "${ALPINE_ROOTFS_DEFAULT_ROOT_PASSWORD}\n${ALPINE_ROOTFS_DEFAULT_ROOT_PASSWORD}\n" | passwd
+			echo -e "${ALPINE_ROOTFS_DEFAULT_PASSWORD}\n${ALPINE_ROOTFS_DEFAULT_PASSWORD}\n" | adduser $ALPINE_ROOTFS_DEFAULT_USER
+			echo $ALPINE_ROOTFS_DEFAULT_HOSTNAME > /etc/hostname
+		else
+			echo set_default_config: Not all variables were defined.
+			exit 1
+		fi
+	}
+	
+	bootstrap_repos() {
+		if 	[ $1 ] && \
+			[ "$ALPINE_ROOTFS_CHROOT_MOUNT" ] && \
+			[ "$ALPINE_ROOTFS_BOOTSTRAP_URL" ]
+		then
+			mkdir -p ${ALPINE_ROOTFS_CHROOT_MOUNT}/etc/apk
+			while [ $1 ]
+			do
+				echo Appending repo ${ALPINE_ROOTFS_BOOTSTRAP_URL}/$1 to ${ALPINE_ROOTFS_CHROOT_MOUNT}/etc/apk/repositories
+				echo ${ALPINE_ROOTFS_BOOTSTRAP_URL}/$1 >> ${ALPINE_ROOTFS_CHROOT_MOUNT}/etc/apk/repositories
+				shift;
+			done 
+		fi
+	}
+fi
+
+if [ "$ARCH" == "x86_64" ] 
+then
+	docker_losetup_setup_override(){
+		if [ ! "$1" ]
+		then
+			echo "Usage: docker_losetup_setup_override <file>" >&2;
+			echo "Return: exit 0 and prints created loop device name" >&2;
+			exit 1
+		fi
+		LOOPDEV=$(losetup --show -f -P $1)
+		PARTITIONS=$(lsblk --raw --output "MAJ:MIN" --noheadings $LOOPDEV | tail -n +2)
+		COUNTER=1
+		for i in $PARTITIONS
+		do
+			MAJ=$(echo $i | cut -d: -f1)
+			MIN=$(echo $i | cut -d: -f2)
+			if [ ! -e "${LOOPDEV}p${COUNTER}" ]
+			then 
+				mknod ${LOOPDEV}p${COUNTER} b $MAJ $MIN; 
+			fi
+			COUNTER=$((COUNTER + 1))
+		done
+		echo $LOOPDEV
+	}
+    
+    docker_losetup_cleanup_override(){
+        if [ ! -e $1 ]
+        then
+            echo "Usage: docker_losetup_cleanup_override </dev/loopX>" >&2;
+            exit 1
+        fi
+        losetup -d $1
+        rm $1p*
+    }
+fi
+

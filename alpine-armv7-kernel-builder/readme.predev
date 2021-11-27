@@ -1,0 +1,5 @@
+This docker image will contain all the stuff and scripts required for building an 
+alpine orange pi zero image. This image should be able to compile uboot, the linux kernel,
+and build an alpine image with a custom init script
+
+It should also include qemu for testing the image.

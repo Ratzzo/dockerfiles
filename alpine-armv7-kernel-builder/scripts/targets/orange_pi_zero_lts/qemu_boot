@@ -1,0 +1,16 @@
+#!/bin/sh
+
+
+if [ "$ALPINE_IMAGE_FILE_OUTPUT" ]; then
+	qemu-system-arm \
+	-machine orangepi-pc \
+	-serial mon:stdio \
+	-display none \
+	-monitor none \
+	-m 1G \
+	-drive file=$ALPINE_IMAGE_FILE_OUTPUT,format=raw \
+	-net nic -net user
+else
+	echo Not all required variables were defined. Check $0
+	exit 1
+fi

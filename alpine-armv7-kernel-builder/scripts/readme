@@ -1,0 +1,24 @@
+These are the scripts for building an alpine image
+I've centered everything around the main Makefile
+
+The makefile has targets for downloading and compiling the kernel, and uboot.
+As the moment I'm writing this readme, everything is still in development.
+
+The main requirement is to have a RO(read only) file system with secondary RW partition.
+
+The image consists of an ext4 image  filesystem with another (rootfs.ext4) loop image inside containing the main rootfs which 
+will be mounted by a modified init script at boot. The loop image is the system. Extra config stuff will be loaded from the apkovl archive.
+Everything will be RO, but remountable allowing for full system updates if needed.
+
+The main purpose of this image is to host services using docker which will be preinstalled into the rootfs.ext4.
+
+The building process should be as follows:
+    * Kernel, RT Patch and Uboot sources are downloaded.
+    * Everything is extracted, and built.
+    * Alpine minirootfs archive is downloaded, extracted and chrooted into.
+    * From the minirootfs chroot:
+        - A rootfs image file is allocated, and a filesystem is formatted onto it. 
+        (this will be mounted on / using a modified init script and kernel on boot)
+        - The rootfs is bootstrapped as a minimal alpine system with a selection of packages preinstalled.
+    * The main image is preallocated, and formatted.
+    * The Kernel, Modules, Uboot, Apkovl archive, and rootfs image are merged into the main image.

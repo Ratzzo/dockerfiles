@@ -1,0 +1,47 @@
+#!/bin/sh
+
+#produce a bootable installation
+
+HOST_ARCH=armv7
+
+if 	[ "$KERNEL_INSTALL_DIR" ] && \
+	[ "$ALPINE_IMAGE_MOUNT_POINT" ] && \
+	[ "$ALPINE_IMAGE_INITRAMFS_REPACK_FILE_OUTPUT" ] && \
+	[ "$KERNEL_NAME" ] && \
+	[ "$ALPINE_ROOTFS_FILE_OUTPUT" ] && \
+	[ "$ALPINE_APKOVL_FILE_OUTPUT" ] && \
+	[ "$ALPINE_ROOTFS_CACHE_DIR" ] && \
+	[ "$HOST_ARCH" ] && \
+	[ "$TARGET_BOARD_BASE_CONFIG" ]
+then
+	mkdir -p $ALPINE_IMAGE_MOUNT_POINT/boot/
+	mkdir -p $ALPINE_IMAGE_MOUNT_POINT/extlinux/
+	rm -f $ALPINE_IMAGE_MOUNT_POINT/boot/*
+	rm -f $ALPINE_IMAGE_MOUNT_POINT/extlinux/*
+	#echo $ALPINE_IMAGE_INITRAMFS_REPACK_FILE_OUTPUT
+	export EXTLINUX_KERNEL_NAME=$KERNEL_NAME
+	export EXTLINUX_TIMEOUT=20
+	export EXTLINUX_PROMPT=1 
+	export EXTLINUX_KERNEL="/boot/zImage-$KERNEL_NAME" 
+	export EXTLINUX_INITRD="/boot/initramfs-$KERNEL_NAME" 
+	export EXTLINUX_FDTDIR="/boot/dtbs-$KERNEL_NAME" 
+	export EXTLINUX_APPEND="modules=loop,squashfs,sd-mod,usb-storage bootmedia=/dev/mmcblk0p1 overlaytmpfs=yes root=/media/mmcblk0p1/rootfs.ext4"
+	$TARGET_BOARD_BASE_CONFIG/extlinux/extlinux.conf.pl > $ALPINE_IMAGE_MOUNT_POINT/extlinux/extlinux.conf
+	cp $ALPINE_IMAGE_INITRAMFS_REPACK_FILE_OUTPUT $ALPINE_IMAGE_MOUNT_POINT/$EXTLINUX_INITRD
+	cp $KERNEL_INSTALL_DIR/zImage $ALPINE_IMAGE_MOUNT_POINT/$EXTLINUX_KERNEL
+	cp $KERNEL_INSTALL_DIR/kernel_config $ALPINE_IMAGE_MOUNT_POINT/boot/${KERNEL_NAME}_config
+	cp -r $KERNEL_INSTALL_DIR/dtbs/$KERNEL_NAME $ALPINE_IMAGE_MOUNT_POINT/$EXTLINUX_FDTDIR
+	
+	#copy rootfs.ext4
+	cp $ALPINE_ROOTFS_FILE_OUTPUT $ALPINE_IMAGE_MOUNT_POINT
+	
+	#copy apks
+	rm -f $ALPINE_IMAGE_MOUNT_POINT/apks/*
+	rm -f $ALPINE_IMAGE_MOUNT_POINT/apks/$HOST_ARCH/*
+	cp $ALPINE_APKOVL_FILE_OUTPUT $ALPINE_IMAGE_MOUNT_POINT
+    #mkdir -p $ALPINE_IMAGE_MOUNT_POINT/apks/$HOST_ARCH
+    #cp $ALPINE_ROOTFS_CACHE_DIR/* $ALPINE_IMAGE_MOUNT_POINT/apks/$HOST_ARCH
+else
+	echo Not all required variables were defined. Check $0
+	exit 1
+fi
