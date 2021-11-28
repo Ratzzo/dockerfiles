@@ -1,0 +1,4 @@
+*/out/
+*/Dockerfile
+*/shared/**
+!*/shared/.gitkeep

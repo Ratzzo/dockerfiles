@@ -1,0 +1,9 @@
+#!/bin/sh
+
+if [ ! "$DOCKER_IMAGE" ]; then exit 1; fi;
+
+./setup 
+
+echo "This is $(readlink -f $0) script from $DOCKER_IMAGE!"
+
+sh

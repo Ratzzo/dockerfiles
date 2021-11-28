@@ -1,0 +1,6 @@
+The complexity of the containers I manage has been getting out of hand.
+The goal here is to provide a template container build with runtime dependencies that can
+be inherited.
+
+If everything works as planned I will move my stuff slowly to this system as I require it.
+

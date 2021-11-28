@@ -1,0 +1,41 @@
+MULTICONTAINER_DOCKER_USERNAME?=ratzzo
+
+
+#base dir as parent folder of this script
+MULTICONTAINER_BASE_DIR:=$(shell cd ..; pwd)
+
+#container name as the current folder name.
+#can be overriden to build with a different name
+MULTICONTAINER_WORKING_DIR:=$(shell pwd)
+MULTICONTAINER_IMAGE_NAME:=$(shell basename $(MULTICONTAINER_WORKING_DIR))
+
+## stuff that should be defined in containers/*/Makefile ##
+
+#other containers that must be built to allow the correct build of this one 
+MULTICONTAINER_BUILD_DEPENDENCIES?=
+
+#
+MULTICONTAINER_BUILD_INHERIT_IMAGE?=
+
+#replace : and / with _
+MULTICONTAINER_BUILD_INHERIT_IMAGE_ESCAPED=$(subst /,_,$(subst :,_,$(MULTICONTAINER_BUILD_INHERIT_IMAGE)))
+
+MULTICONTAINER_BUILD_IMAGE?=$(MULTICONTAINER_DOCKER_USERNAME)/$(MULTICONTAINER_IMAGE_NAME)
+
+#replace : and / with _
+MULTICONTAINER_BUILD_IMAGE_ESCAPED=$(subst /,_,$(subst :,_,$(MULTICONTAINER_BUILD_IMAGE)))
+
+#the command used for running this container
+MULTICONTAINER_RUN_COMMAND?=
+MULTICONTAINER_QUICK_RUN_COMMAND?=$(MULTICONTAINER_RUN_COMMAND)
+
+MULTICONTAINER_BUILD_OUTDIR?=out
+
+MULTICONTAINER_BUILD_SCRIPTSDIR?=scripts
+
+MULTICONTAINER_BUILD_DEPCHECK_OUTDIR?=$(MULTICONTAINER_BUILD_OUTDIR)/depcheck
+
+MULTICONTAINER_BUILD_DEPENDENCIES_CHECK_TARGETS=$(foreach dep,$(MULTICONTAINER_BUILD_DEPENDENCIES),$(MULTICONTAINER_BUILD_DEPCHECK_OUTDIR)/$(dep))
+
+
+

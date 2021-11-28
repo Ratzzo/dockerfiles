@@ -1,0 +1,20 @@
+#boilerplate stuff
+FROM ${MULTICONTAINER_BUILD_INHERIT_IMAGE}
+
+#append old setup to setup chain
+RUN touch /opt/setup_chain && \
+    echo DOCKER_IMAGE=$DOCKER_IMAGE >> /opt/setup_chain && \
+    echo DOCKER_SETUP=$DOCKER_SETUP >> /opt/setup_chain && \
+    echo DOCKER_EP=$DOCKER_EP >> /opt/setup_chain && \
+    echo ${DOCKER_SETUP} >> /opt/setup_chain && \
+    chmod +x /opt/setup_chain || true
+    
+ENV DOCKER_IMAGE=${MULTICONTAINER_BUILD_IMAGE}
+ENV DOCKER_SETUP=/opt/${MULTICONTAINER_BUILD_IMAGE_ESCAPED}_scripts/setup
+ENV DOCKER_EP=/opt/${MULTICONTAINER_BUILD_IMAGE_ESCAPED}_scripts/entrypoint
+ADD scripts /opt/${MULTICONTAINER_BUILD_IMAGE_ESCAPED}_scripts
+
+
+RUN env
+
+ENTRYPOINT sh -c "/opt/setup_chain; cd $(dirname $DOCKER_EP); $DOCKER_EP"
