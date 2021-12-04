@@ -1,0 +1,12 @@
+#!/bin/sh
+
+if [ ! "$DOCKER_IMAGE" ]; then exit 1; fi;
+
+cd /opt/scripts
+
+./setup
+
+/bin/registry serve /etc/docker/registry/config.yml
+
+#su $CONTAINER_USER -c "cd ~ && sh"
+    

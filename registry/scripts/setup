@@ -1,0 +1,92 @@
+#!/bin/sh
+
+if [ ! "$DOCKER_IMAGE" ]; then exit 1; fi;
+
+random_password() {
+	echo $(dd if=/dev/random bs=32 count=10 status=none | md5sum | cut -d ' ' -f 1);
+}
+
+sed_escape() { 
+	echo "$1" | sed -e 's/[\/&]/\\&/g'; 
+}
+
+SSHDIR=/tmp/shared
+ALGO=rsa
+BITS=2048
+SSH_PORT="${SSH_PORT:=22}"
+CONTAINER_USER="${CONTAINER_USER:=user}"
+
+NGINX_PORT="${NGINX_PORT:=5100}"
+NGINX_SSL="${NGINX_SSL:=}"
+NGINX_SERVER_NAME="${NGINX_SERVER_NAME:=registry.domain.net}"
+NGINX_CERT="${NGINX_CERT:=/etc/letsencrypt/live/registry.domain.net/fullchain.pem}"
+NGINX_CERT_PRIVKEY="${NGINX_CERT_PRIVKEY:=/etc/letsencrypt/live/registry.domain.net/privkey.pem}"
+NGINX_REGISTRY_PUSH_USER="${NGINX_REGISTRY_PUSH_USER:=admin}"
+NGINX_REGISTRY_PUSH_PASSWORD=${NGINX_REGISTRY_PUSH_PASSWORD:=}
+
+if [ "$NGINX_SSL" ]; then
+	NGINX_LISTEN="listen $NGINX_PORT ssl;"
+	NGINX_SERVER_CERTIFICATE="ssl_certificate ${NGINX_CERT};"
+	NGINX_SERVER_CERTIFICATE_KEY="ssl_certificate_key ${NGINX_CERT_PRIVKEY};"
+	NGINX_SSL_PROTOCOLS="ssl_protocols TLSv1.1 TLSv1.2;"
+	NGINX_SSL_CIPHERS="ssl_ciphers ""'""EECDH+AESGCM:EDH+AESGCM:AES256+EECDH:AES256+EDH""'"";"
+	NGINX_SSL_PREFER_SERVER_CIPHERS="ssl_prefer_server_ciphers on;"
+	NGINX_SSL_SESSION_CACHE="ssl_session_cache shared:SSL:10m;"
+else
+	NGINX_LISTEN="listen $NGINX_PORT;"
+fi
+
+if [ "$NGINX_SERVER_NAME" ]; then
+	NGINX_SERVER_NAME="server_name ${NGINX_SERVER_NAME};"
+fi
+
+mkdir -p $SSHDIR
+
+#change sshd port
+sed -i "s/#Port 22/Port $SSH_PORT/" /etc/ssh/sshd_config
+
+#generate random password
+echo $NGINX_REGISTRY_PUSH_USER:$NGINX_REGISTRY_PUSH_PASSWORD > /tmp/shared/docker_secret
+RANDOM_PASSWORD=$(random_password)
+
+#change passwords
+echo -e "${RANDOM_PASSWORD}\n${RANDOM_PASSWORD}\n" | passwd root > /dev/null
+echo -e "${RANDOM_PASSWORD}\n${RANDOM_PASSWORD}\n" | adduser $CONTAINER_USER > /dev/null
+
+#add container user to sudoers
+echo -e "$CONTAINER_USER ALL=(ALL) NOPASSWD: ALL" >> /etc/sudoers 
+
+#set user as owner of SSHDIR
+chown $CONTAINER_USER:$CONTAINER_USER $SSHDIR
+
+#generate ssh keys
+if [ ! -f ${SSHDIR}/id_${ALGO} ]; then 
+	su $CONTAINER_USER -c "ssh-keygen -t $ALGO -P '' -b $BITS -f $SSHDIR/id_$ALGO; mkdir -p ~/.ssh/; cp $SSHDIR/id_$ALGO.pub ~/.ssh/authorized_keys; cd ~ && chmod 700 -R .ssh"
+else
+	su $CONTAINER_USER -c "mkdir -p ~/.ssh/; cp $SSHDIR/id_$ALGO.pub ~/.ssh/authorized_keys; cd ~ && chmod 700 -R .ssh"
+fi
+
+cat /opt/scripts/docker.conf | sed 																\
+-e "s/\${NGINX_LISTEN}/$(sed_escape "${NGINX_LISTEN}")/g"   									\
+-e "s/\${NGINX_SERVER_NAME}/$(sed_escape "${NGINX_SERVER_NAME}")/g"   							\
+-e "s/\${NGINX_SERVER_CERTIFICATE}/$(sed_escape "${NGINX_SERVER_CERTIFICATE}")/g"   			\
+-e "s/\${NGINX_SERVER_CERTIFICATE_KEY}/$(sed_escape "${NGINX_SERVER_CERTIFICATE_KEY}")/g"   	\
+-e "s/\${NGINX_SSL_PROTOCOLS}/$(sed_escape "${NGINX_SSL_PROTOCOLS}")/g"   						\
+-e "s/\${NGINX_SSL_CIPHERS}/$(sed_escape "${NGINX_SSL_CIPHERS}")/g"   							\
+-e "s/\${NGINX_SSL_PREFER_SERVER_CIPHERS}/$(sed_escape "${NGINX_SSL_PREFER_SERVER_CIPHERS}")/g"	\
+-e "s/\${NGINX_SSL_SESSION_CACHE}/$(sed_escape "${NGINX_SSL_SESSION_CACHE}")/g" > /etc/nginx/conf.d/default.conf
+
+#set https passwords
+htpasswd -Bbn public public > /etc/nginx/conf.d/docker_public.htpasswd
+if [ ! "$NGINX_REGISTRY_PUSH_PASSWORD" ]; then
+	if [ ! -f /tmp/shared/docker_private.htpasswd ]; then
+		echo "Enter new password for registry username: ${NGINX_REGISTRY_PUSH_USER}"
+		htpasswd -Bn ${NGINX_REGISTRY_PUSH_USER} > /tmp/shared/docker_private.htpasswd
+	fi
+else
+	htpasswd -Bbn ${NGINX_REGISTRY_PUSH_USER} ${NGINX_REGISTRY_PUSH_PASSWORD} > /tmp/shared/docker_private.htpasswd
+fi
+cat /tmp/shared/docker_private.htpasswd >> /etc/nginx/conf.d/docker_public.htpasswd
+
+service sshd start
+service nginx start

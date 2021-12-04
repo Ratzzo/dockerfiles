@@ -1,0 +1,46 @@
+################################################################################
+This container contains the docker registry image along with sshd, and nginx.
+
+The registry is listening on port 5000, and proxied through nginx listening on
+port 5100. Nginx provides some access control as following:
+
+ - Public registry access is granted under the credentials public:public
+ - Private registry access is granted with registry_private.htpasswd
+
+A ssh key is generated at the container run along with credentials for public
+readonly registry access, and readwrite access.
+
+Docker registry data is stored on /var/lib/registry, and shared container data
+is stored  on /tmp/shared inside the container (registry_private.htpasswd, 
+and id_rsa)
+
+we need the volume mount location to exist on the host (obvously):
+
+mkdir -p /var/containers/ratzzo_registry/shared
+docker run --name docker_registry \
+-p 5100:5100 \
+-v docker_registry:/var/lib/registry \
+-v /var/containers/ratzzo_registry/shared:/tmp/shared \
+--rm -it ratzzo/registry /opt/scripts/entrypoint
+
+To run debug only on the same folder as the Dockerfile.
+
+mkdir -p /var/containers/ratzzo_registry/shared
+
+docker run --name docker_registry \
+-p 5100:5100 \
+-v docker_registry:/var/lib/registry \
+-v /var/containers/ratzzo_registry/shared:/tmp/shared \
+-v $PWD/scripts:/opt/scripts \
+--rm -it ratzzo/registry /opt/scripts/entrypoint
+
+See /opt/scripts/setup inside the container or scripts/setup relative to the
+dockerfile for the available variables that can be passed to this container.
+Also check official docker registry config for config inherited from the 
+registry image.
+
+To generate id_rsa annd the private htpasswd run this container with the
+run command provided, and then the docker-registry.service systemd unit can
+be installed on the host
+ 
+################################################################################

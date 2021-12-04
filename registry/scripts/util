@@ -1,0 +1,5 @@
+#!/bin/sh
+
+sed_escape() { 
+	echo "$1" | sed -e 's/[\/&]/\\&/g'
+}

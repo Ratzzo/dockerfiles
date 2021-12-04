@@ -1,0 +1,17 @@
+[Unit]
+Description=Docker registry systemd unit
+After=docker.service
+
+[Service]
+#Type=notify
+ExecStart=/usr/bin/bash -c "mkdir -p /var/containers/ratzzo_registry/shared; \
+docker run --name docker_registry \
+-p 5100:5100 \
+-v docker_registry:/var/lib/registry \
+-v /var/containers/ratzzo_registry/shared:/tmp/shared \
+--rm -i ratzzo/registry /opt/scripts/entrypoint"
+ExecStop=/usr/bin/bash -c "docker kill docker_registry || true"
+#PrivateTmp=true
+
+[Install]
+WantedBy=multi-user.target
