@@ -93,8 +93,7 @@ nginx \
 openssl \
 openrc \
 dhcpcd \
-dhcpcd-openrc \
-k3s
+dhcpcd-openrc
 
 ALPINE_ROOTFS_RC_ADD=\
 devfs sysinit           \

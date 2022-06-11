@@ -74,10 +74,10 @@ cat /opt/scripts/docker.conf | sed 																\
 -e "s/\${NGINX_SSL_PROTOCOLS}/$(sed_escape "${NGINX_SSL_PROTOCOLS}")/g"   						\
 -e "s/\${NGINX_SSL_CIPHERS}/$(sed_escape "${NGINX_SSL_CIPHERS}")/g"   							\
 -e "s/\${NGINX_SSL_PREFER_SERVER_CIPHERS}/$(sed_escape "${NGINX_SSL_PREFER_SERVER_CIPHERS}")/g"	\
--e "s/\${NGINX_SSL_SESSION_CACHE}/$(sed_escape "${NGINX_SSL_SESSION_CACHE}")/g" > /etc/nginx/conf.d/default.conf
+-e "s/\${NGINX_SSL_SESSION_CACHE}/$(sed_escape "${NGINX_SSL_SESSION_CACHE}")/g" > /etc/nginx/http.d/default.conf
 
 #set https passwords
-htpasswd -Bbn public public > /etc/nginx/conf.d/docker_public.htpasswd
+htpasswd -Bbn public public > /etc/nginx/http.d/docker_public.htpasswd
 if [ ! "$NGINX_REGISTRY_PUSH_PASSWORD" ]; then
 	if [ ! -f /tmp/shared/docker_private.htpasswd ]; then
 		echo "Enter new password for registry username: ${NGINX_REGISTRY_PUSH_USER}"
@@ -86,7 +86,7 @@ if [ ! "$NGINX_REGISTRY_PUSH_PASSWORD" ]; then
 else
 	htpasswd -Bbn ${NGINX_REGISTRY_PUSH_USER} ${NGINX_REGISTRY_PUSH_PASSWORD} > /tmp/shared/docker_private.htpasswd
 fi
-cat /tmp/shared/docker_private.htpasswd >> /etc/nginx/conf.d/docker_public.htpasswd
+cat /tmp/shared/docker_private.htpasswd >> /etc/nginx/http.d/docker_public.htpasswd
 
 service sshd start
 service nginx start

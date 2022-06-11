@@ -1,6 +1,8 @@
-.PHONY: status run clean
+.PHONY: status run clean query_deps
 
-Dockerfile: Dockerfile.in Makefile
+.PRECIOUS: $(MULTICONTAINER_BUILD_OUTDIR)/Dockerfil% $(MULTICONTAINER_BUILD_DEPCHECK_OUTDIR)/% clean_all_images
+
+$(MULTICONTAINER_BUILD_OUTDIR)/Dockerfil%: Dockerfil%.in Makefile | $(MULTICONTAINER_BUILD_OUTDIR)
 	@sed_escape() { echo "$$1" | sed -e 's/[\/&]/\\&/g'; }; sed \
 	-e 's/$${MULTICONTAINER_BUILD_INHERIT_IMAGE}/'$$(sed_escape "$(MULTICONTAINER_BUILD_INHERIT_IMAGE)")'/g' \
 	-e 's/$${MULTICONTAINER_BUILD_INHERIT_IMAGE_ESCAPED}/'$$(sed_escape "$(MULTICONTAINER_BUILD_INHERIT_IMAGE_ESCAPED)")'/g' \
@@ -12,10 +14,36 @@ Dockerfile: Dockerfile.in Makefile
 $(MULTICONTAINER_BUILD_OUTDIR):
 	mkdir -p $@
 	
-$(MULTICONTAINER_BUILD_OUTDIR)/built: Dockerfile $(MULTICONTAINER_BUILD_SCRIPTSDIR) $(MULTICONTAINER_BUILD_DEPENDENCIES_CHECK_TARGETS) | $(MULTICONTAINER_BUILD_OUTDIR)
-	DOCKER_BUILDKIT=1 docker build . \
-	-t $(MULTICONTAINER_DOCKER_USERNAME)/$(MULTICONTAINER_IMAGE_NAME)
-	touch $@
+$(MULTICONTAINER_BUILD_OUTDIR)/%_built: $(MULTICONTAINER_BUILD_PLATFORM_DOCKERFILE_OUT_TARGETS) $(MULTICONTAINER_BUILD_SCRIPTSDIR) $(MULTICONTAINER_BUILD_DEPENDENCIES_CHECK_TARGETS) | $(MULTICONTAINER_BUILD_OUTDIR)
+	@SOURCE_DOCKERFILE="$(MULTICONTAINER_BUILD_OUTDIR)/Dockerfile.$(subst _built,,$(notdir $@))";		\
+	if [ -f "$$SOURCE_DOCKERFILE" ]; 									\
+	then 													\
+		SOURCE_DOCKERFILE="$$SOURCE_DOCKERFILE"; 							\
+	else 													\
+		SOURCE_DOCKERFILE="$(MULTICONTAINER_BUILD_OUTDIR)/Dockerfile"; 					\
+	fi;													\
+	IMAGE_TAG=$(MULTICONTAINER_BUILDX_REGISTRY)/$(MULTICONTAINER_BUILD_IMAGE):$(subst /,.,$(subst _built,,$(subst .,/,$(notdir $@))))-latest;								\
+	podman build --jobs $(MULTICONTAINER_BUILD_JOBS) --squash --platform $(subst _built,,$(subst .,/,$(notdir $@))) -f $$SOURCE_DOCKERFILE . \
+	-t $$IMAGE_TAG || exit 1; 
+	@touch $@
+
+MULTICONTAINER_BUILT_IMAGES=$(foreach dep, \
+	$(MULTICONTAINER_BUILD_PLATFORM_TARGETS), \
+	$(MULTICONTAINER_BUILDX_REGISTRY)/$(MULTICONTAINER_BUILD_IMAGE):$(subst /,.,$(subst _built,,$(subst .,/,$(notdir $(dep)))))-latest)
+
+$(MULTICONTAINER_BUILD_OUTDIR)/multiarch_manifest: $(MULTICONTAINER_BUILD_PLATFORM_TARGETS)
+	@for image in $(MULTICONTAINER_BUILT_IMAGES); do \
+		echo -e "Pushing $$image..."; \
+		podman push $$image; \
+	done;
+	
+	podman manifest exists $(MULTICONTAINER_BUILDX_REGISTRY)/$(MULTICONTAINER_BUILD_IMAGE):manifest-latest; \
+	if [ $$? ]; then \
+		podman manifest rm $(MULTICONTAINER_BUILDX_REGISTRY)/$(MULTICONTAINER_BUILD_IMAGE):manifest-latest || true; \
+	fi;
+	podman manifest create $(MULTICONTAINER_BUILDX_REGISTRY)/$(MULTICONTAINER_BUILD_IMAGE):manifest-latest $(MULTICONTAINER_BUILT_IMAGES)
+	podman manifest push --rm $(MULTICONTAINER_BUILDX_REGISTRY)/$(MULTICONTAINER_BUILD_IMAGE):manifest-latest docker://$(MULTICONTAINER_BUILDX_REGISTRY)/$(MULTICONTAINER_BUILD_IMAGE):latest || true
+	@touch $@
 
 $(MULTICONTAINER_BUILD_DEPCHECK_OUTDIR): | $(MULTICONTAINER_BUILD_OUTDIR)
 	mkdir -p $@
@@ -23,13 +51,15 @@ $(MULTICONTAINER_BUILD_DEPCHECK_OUTDIR): | $(MULTICONTAINER_BUILD_OUTDIR)
 clean:
 	@if [ ! $(MULTICONTAINER_BUILD_OUTDIR) ]; then exit 1; fi;
 	rm -rf $(MULTICONTAINER_BUILD_OUTDIR)/*
-	
-build: $(MULTICONTAINER_BUILD_OUTDIR)/built
+
+build: $(MULTICONTAINER_BUILD_PLATFORM_TARGETS)
+
+push: $(MULTICONTAINER_BUILD_OUTDIR)/multiarch_manifest
 	
 run:
 	$(MULTICONTAINER_QUICK_RUN_COMMAND)
 
-dep_run: $(MULTICONTAINER_BUILD_OUTDIR)/built
+dep_run: $(MULTICONTAINER_BUILD_OUTDIR)/multiarch_manifest
 	$(MULTICONTAINER_RUN_COMMAND)
 
 status:
@@ -46,8 +76,15 @@ status:
 	@echo MULTICONTAINER_BUILD_DEPENDENCIES_EXPANDED=$(MULTICONTAINER_BUILD_DEPENDENCIES_EXPANDED)
 	@echo MULTICONTAINER_BUILD_DEPENDENCIES_CHECK_TARGETS=$(MULTICONTAINER_BUILD_DEPENDENCIES_CHECK_TARGETS)
 
-$(MULTICONTAINER_BUILD_DEPCHECK_OUTDIR)/%: $(MULTICONTAINER_BUILD_DEPCHECK_OUTDIR)
-	make -C $(MULTICONTAINER_BASE_DIR)/$(notdir $@) build
+
+$(MULTICONTAINER_BUILD_DEPCHECK_OUTDIR)/%: | $(MULTICONTAINER_BUILD_DEPCHECK_OUTDIR)
+	make -C $(MULTICONTAINER_BASE_DIR)/$(notdir $@) push
 	touch $@
+
+clean_all_images:
+	podman image rm -f $$(podman images -q)
+	
+print_var:
+	@echo $($(VAR))
 
 	

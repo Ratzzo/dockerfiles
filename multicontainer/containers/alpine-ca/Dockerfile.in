@@ -1,5 +1,5 @@
 #boilerplate stuff
-FROM alpine:edge
+FROM ${MULTICONTAINER_BUILD_INHERIT_IMAGE}
 
 #append old setup to setup chain
 RUN touch /opt/setup_chain && \
@@ -9,12 +9,11 @@ RUN touch /opt/setup_chain && \
     echo ${DOCKER_SETUP} >> /opt/setup_chain && \
     chmod +x /opt/setup_chain || true
     
-ENV DOCKER_IMAGE=ratzzo/test_container1
-ENV DOCKER_SETUP=/opt/ratzzo_test_container1_scripts/setup
-ENV DOCKER_EP=/opt/ratzzo_test_container1_scripts/entrypoint
-ADD scripts /opt/ratzzo_test_container1_scripts
+ENV DOCKER_IMAGE=${MULTICONTAINER_BUILD_IMAGE}
+ENV DOCKER_SETUP=/opt/${MULTICONTAINER_BUILD_IMAGE_ESCAPED}_scripts/setup
+ENV DOCKER_EP=/opt/${MULTICONTAINER_BUILD_IMAGE_ESCAPED}_scripts/entrypoint
+ADD scripts /opt/${MULTICONTAINER_BUILD_IMAGE_ESCAPED}_scripts
 
-
-RUN env
+RUN apk add --no-cache openssl
 
 ENTRYPOINT sh -c "/opt/setup_chain; cd $(dirname $DOCKER_EP); $DOCKER_EP"
