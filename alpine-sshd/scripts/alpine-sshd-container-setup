@@ -1,0 +1,35 @@
+#!/bin/sh
+
+if [ ! "$DOCKER_CONTAINER" ]; then exit 1; fi;
+
+SSHDIR=/tmp/shared
+ALGO=rsa
+BITS=2048
+SSH_PORT="${SSH_PORT:=22}"
+CONTAINER_USER="${CONTAINER_USER:=user}"
+
+mkdir -p $SSHDIR
+rm -f $SSHDIR/id_$ALGO
+rm -f $SSHDIR/id_$ALGO.pub
+
+#change sshd port
+sed -i "s/#Port 22/Port $SSH_PORT/" /etc/ssh/sshd_config
+
+#generate random password
+RANDOM_PASSWORD=$(dd if=/dev/random bs=32 count=10 status=none | md5sum | cut -d ' ' -f 1);
+
+#change passwords
+echo -e "${RANDOM_PASSWORD}\n${RANDOM_PASSWORD}\n" | passwd root > /dev/null
+echo -e "${RANDOM_PASSWORD}\n${RANDOM_PASSWORD}\n" | adduser $CONTAINER_USER > /dev/null
+
+#add container user to sudoers
+echo -e "$CONTAINER_USER ALL=(ALL) NOPASSWD: ALL" >> /etc/sudoers 
+
+#set user as owner of SSHDIR
+chown $CONTAINER_USER:$CONTAINER_USER $SSHDIR
+
+#generate ssh keys
+su $CONTAINER_USER -c "ssh-keygen -t $ALGO -P '' -b $BITS -f $SSHDIR/id_$ALGO; mkdir -p ~/.ssh/; cp $SSHDIR/id_$ALGO.pub ~/.ssh/authorized_keys; cd ~ && chmod 700 -R .ssh"
+
+service sshd start
+#service nginx start

@@ -1,0 +1,5 @@
+This containe is the alpine installation with sshd
+and a custom user.
+
+The user creation is done at the container build stage. The passwords for root, and
+the user are updated when the container starts.

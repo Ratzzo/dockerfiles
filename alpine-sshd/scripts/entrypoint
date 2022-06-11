@@ -1,0 +1,10 @@
+#!/bin/sh
+
+if [ ! "$DOCKER_CONTAINER" ]; then exit 1; fi;
+
+cd /opt/scripts
+
+./alpine-sshd-container-setup
+
+su $CONTAINER_USER -c "cd ~ && sh"
+    
