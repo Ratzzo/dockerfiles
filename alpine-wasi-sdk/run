@@ -1,0 +1,1 @@
+docker run --rm -it -v ${PWD}/scripts:/opt/scripts --env UID=$(id -u) --env GID=$(id -u) registry.ratzzo.net/ratzzo/alpine-wasi-sdk
