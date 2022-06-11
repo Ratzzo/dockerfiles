@@ -1,0 +1,12 @@
+#!/bin/sh
+
+if [ ! "$DOCKER_CONTAINER" ]; then exit 1; fi;
+#run inherited container setup
+cd /opt/${INHERIT_IMAGE_NAME}-scripts/; ./${INHERIT_IMAGE_NAME}-container-setup
+
+cd /opt/scripts;
+
+echo asdasd
+
+su $CONTAINER_USER -c "cd ~ && sh"
+
