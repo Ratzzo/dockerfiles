@@ -1,0 +1,129 @@
+#!/bin/sh
+
+#runtime setup script
+
+if [ ! "$DOCKER_IMAGE" ]; then exit 1; fi;
+
+if [ "$1" == "wordpress" ]; then
+    wget https://raw.githubusercontent.com/wp-cli/builds/gh-pages/phar/wp-cli.phar -O /usr/local/bin/wp
+    chmod +x /usr/local/bin/wp
+    wget -q -O - https://wordpress.org/wordpress-5.8.3.tar.gz | tar xzv -C /srv
+    ln -s /usr/bin/php8 /usr/bin/php
+    exit 0
+fi
+
+    #build time part
+RELATIVE_SCRIPTS_PATH=$(dirname "$DOCKER_SETUP")
+if [ -d "$RELATIVE_SCRIPTS_PATH/persist/etc" ]; then
+    cp -r "$RELATIVE_SCRIPTS_PATH/persist/etc" /
+fi
+
+if [ "$1" == "building" ]; then
+    exit 0
+fi
+
+
+SHARED_ETC=/tmp/shared/etc
+mkdir -p $SHARED_ETC
+
+#link shared files to config for persistence
+link_shared_config () {
+    if [ ! "$1" ] || [ ! "$2" ] || [ ! "$3" ]; then
+        echo "Missing param."
+        return 1
+    fi
+    
+    LINK_TYPE="$1"
+    LOCATION_SHARED="$2" #shared location
+    LOCATION_CONTAINER="$3" #location inside the container
+    
+    if [ "$LINK_TYPE" == "dir" ]; then
+        if [ ! -d $LOCATION_SHARED ]; then
+            cp -r $LOCATION_CONTAINER $LOCATION_SHARED
+        fi
+        
+        mv $LOCATION_CONTAINER $LOCATION_CONTAINER.old
+        ln -s $LOCATION_SHARED $LOCATION_CONTAINER
+        
+    elif [ "$LINK_TYPE" == "file" ]; then
+        if [ ! -f $LOCATION_SHARED ]; then
+            cp $LOCATION_CONTAINER $LOCATION_SHARED
+        fi
+        
+        mv $LOCATION_CONTAINER $LOCATION_CONTAINER.old
+        ln -s $LOCATION_SHARED $LOCATION_CONTAINER
+    else
+        echo "not file nor dir"
+        return 1
+    fi
+   
+}
+
+link_shared_etc_entry () {
+    if [ ! "$1" ]; then return 1; fi;
+    ENTRY_NAME="$1"
+    ENTRY_TYPE="none"
+    if [ -d /etc/$ENTRY_NAME ]; then
+        ENTRY_TYPE="dir"
+    elif [ -f /etc/$ENTRY_NAME ]; then
+        ENTRY_TYPE="file"
+    fi
+    
+    link_shared_config $ENTRY_TYPE $SHARED_ETC/$ENTRY_NAME /etc/$ENTRY_NAME
+}
+
+link_shared_etc_entry nginx
+link_shared_etc_entry my.cnf
+link_shared_etc_entry my.cnf.d
+link_shared_etc_entry mysql
+link_shared_etc_entry php8
+
+link_shared_config dir /tmp/shared/wordpress /srv/wordpress
+chown nginx:nginx -R /tmp/shared/wordpress
+
+if [ ! -d "/tmp/shared/mysql/data" ]; then
+    mkdir -p /tmp/shared/mysql/data
+    chown -R mysql:mysql /tmp/shared/mysql/data
+    mysql_install_db --user=mysql --datadir=/tmp/shared/mysql/data
+fi
+
+#allow nginx to login
+nginx_home=/var/lib/nginx
+RANDOM_PASSWORD=$(dd if=/dev/random bs=32 count=10 status=none | md5sum | cut -d ' ' -f 1);
+echo -e "${RANDOM_PASSWORD}\n${RANDOM_PASSWORD}\n" | passwd nginx > /dev/null
+mkdir -p $nginx_home/.ssh
+cat /tmp/shared/id_rsa.pub >> $nginx_home/.ssh/authorized_keys
+chown -R nginx:nginx $nginx_home/.ssh
+chmod -R 700 $nginx_home/.ssh
+usermod -s /bin/ash nginx
+
+service nginx start
+service mariadb start
+service php-fpm8 start
+
+if [ ! -f "/tmp/shared/database" ]; then
+    echo "DROP DATABASE IF EXISTS wordpress; CREATE DATABASE wordpress; DROP USER IF EXISTS 'wordpress'@'localhost'; CREATE USER 'wordpress'@'localhost' IDENTIFIED BY 'wordpress'; GRANT ALL PRIVILEGES ON * . * TO 'wordpress'@'localhost'; FLUSH PRIVILEGES;" | mysql
+    echo "Delete this file and restart the container to recreate the database and user." > /tmp/shared/database
+    cd /tmp/shared/wordpress
+    rm -f wp-config.php
+    wp config create --dbname=wordpress --dbuser=wordpress --dbpass=wordpress
+    cat wp-config.php | awk '{gsub("require_once", "//require_once", $0); print}' > wp-config2.php
+    wp core install --url=localhost:8080 --title=title --admin_user=admin --admin_password=password --admin_email=admin@domain.com
+    #preinstall plugins 
+    wp plugin install woocommerce --activate
+    wp plugin install https://www.flow.cl/plugins/woocommerce/flowpayment-woo_3.0.0.zip --force --activate
+    mv wp-config2.php wp-config.php
+    
+    echo -e "define('FS_METHOD', 'direct');" >> wp-config.php;
+    echo -e "\$protocol = (!empty(\$_SERVER['HTTPS']) && \$_SERVER['HTTPS'] !== 'off' || \$_SERVER['SERVER_PORT'] == 443) ? \"https\" : \"http\";\ndefine('WP_SITEURL', \$protocol . '://' . \$_SERVER['HTTP_HOST']);\ndefine('WP_HOME', \$protocol . '://' . \$_SERVER['HTTP_HOST']);\nrequire_once ABSPATH . 'wp-settings.php';" >> wp-config.php
+    
+    #cat wp-config.php 
+    chown -R nginx:nginx /tmp/shared/wordpress
+    #chmod 777 -R /tmp/shared/wordpress
+    
+    cd -
+fi
+
+
+
+
