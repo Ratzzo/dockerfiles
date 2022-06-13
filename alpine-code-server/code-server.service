@@ -1,0 +1,25 @@
+[Unit]
+Description=Code server systemd unit
+After=docker.service
+
+[Service]
+#Type=notify
+Environment=RUN_AS_USER=www-data
+Environment=CONTAINER=registry.ratzzo.net/ratzzo/alpine-code-server
+Environment=CONTAINER_DATA=/opt/container/ratzzo_code_server
+ExecStart=/usr/bin/bash -c "mkdir -p ${CONTAINER_DATA}/shared; \
+_USER=${RUN_AS_USER} \
+_UID=$(id -u $_USER) \
+_GID=$(id -g $_USER) \
+docker run --name code_server \
+-v ${CONTAINER_DATA}/shared:/tmp/shared \
+--network host \
+-e _USER \
+-e _UID \
+-e _GID \
+--rm -i ${CONTAINER} code-server --socket /tmp/shared/code-server.sock --socket-mode 777 --config /tmp/shared/code-server.yaml /tmp/shared"
+ExecStop=/usr/bin/bash -c "docker kill code_server || true"
+#PrivateTmp=true
+
+[Install]
+WantedBy=multi-user.target
