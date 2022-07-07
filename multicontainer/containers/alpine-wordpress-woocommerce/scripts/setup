@@ -89,7 +89,7 @@ fi
 
 #allow nginx to login
 nginx_home=/var/lib/nginx
-RANDOM_PASSWORD=$(dd if=/dev/random bs=32 count=10 status=none | md5sum | cut -d ' ' -f 1);
+RANDOM_PASSWORD=$(dd if=/dev/urandom bs=32 count=10 status=none | md5sum | cut -d ' ' -f 1);
 echo -e "${RANDOM_PASSWORD}\n${RANDOM_PASSWORD}\n" | passwd nginx > /dev/null
 mkdir -p $nginx_home/.ssh
 cat /tmp/shared/id_rsa.pub >> $nginx_home/.ssh/authorized_keys
