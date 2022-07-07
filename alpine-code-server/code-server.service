@@ -17,7 +17,7 @@ docker run --name code_server \
 -e _USER \
 -e _UID \
 -e _GID \
---rm -i ${CONTAINER} code-server --socket /tmp/shared/code-server.sock --socket-mode 777 --config /tmp/shared/code-server.yaml /tmp/shared"
+--rm -i ${CONTAINER} /opt/scripts/setup.sh code-server --socket /tmp/shared/code-server.sock --socket-mode 777 --config /tmp/shared/code-server.yaml /tmp/shared"
 ExecStop=/usr/bin/bash -c "docker kill code_server || true"
 #PrivateTmp=true
 
