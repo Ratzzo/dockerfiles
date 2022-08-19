@@ -19,7 +19,7 @@ ENV DOCKER_EP=/opt/${MULTICONTAINER_BUILD_IMAGE_ESCAPED}_scripts/entrypoint
 
 RUN	apk add --no-cache shadow nginx mariadb mariadb-client php8 php8-fpm php8-curl \
     php8-enchant php8-gd php8-iconv php8-imap php8-intl php8-ldap php8-mysqli php8-odbc \
-    php8-opcache php8-pdo_mysql php8-pdo_sqlite php8-soap php8-sockets php8-sqlite3 php8-zip php8-json php8-phar php8-xdebug
+    php8-opcache php8-pdo_mysql php8-pdo_sqlite php8-soap php8-sockets php8-sqlite3 php8-zip php8-json php8-phar php8-xdebug php8-xmlreader php8-ctype
 RUN touch /run/openrc/started/networking /run/openrc/started/machine-id
 
 ## end real docker stuff ##

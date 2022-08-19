@@ -71,7 +71,8 @@ link_shared_etc_entry () {
     
     link_shared_config $ENTRY_TYPE $SHARED_ETC/$ENTRY_NAME /etc/$ENTRY_NAME
 }
-
+    
+link_shared_etc_entry init.d
 link_shared_etc_entry nginx
 link_shared_etc_entry my.cnf
 link_shared_etc_entry my.cnf.d
