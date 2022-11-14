@@ -1,0 +1,41 @@
+#boilerplate stuff
+FROM ${MULTICONTAINER_BUILD_INHERIT_IMAGE}
+
+#append old setup to setup chain
+#only passing redefined variables
+#inherited variables are kept
+RUN touch /opt/setup_chain && \
+    echo DOCKER_IMAGE=$DOCKER_IMAGE >> /opt/setup_chain && \
+    echo DOCKER_SETUP=$DOCKER_SETUP >> /opt/setup_chain && \
+    echo DOCKER_EP=$DOCKER_EP >> /opt/setup_chain && \
+    echo ${DOCKER_SETUP} >> /opt/setup_chain && \
+    chmod +x /opt/setup_chain || true
+    
+ENV DOCKER_IMAGE=${MULTICONTAINER_BUILD_IMAGE}
+ENV DOCKER_SETUP=/opt/${MULTICONTAINER_BUILD_IMAGE_ESCAPED}_scripts/setup
+ENV DOCKER_EP=/opt/${MULTICONTAINER_BUILD_IMAGE_ESCAPED}_scripts/entrypoint
+
+## real docker stuff ##
+
+RUN	apk add --no-cache shadow nginx mariadb mariadb-client php8 php8-fpm php8-curl \
+    php8-enchant php8-gd php8-iconv php8-imap php8-intl php8-ldap php8-mysqli php8-odbc \
+    php8-opcache php8-pdo_mysql php8-pdo_sqlite php8-soap php8-sockets php8-sqlite3 php8-zip \
+    php8-session php8-json php8-phar php8-xdebug php8-openssl
+RUN touch /run/openrc/started/networking /run/openrc/started/machine-id
+
+RUN apk add --no-cache rustup gcc musl-dev openssl-dev
+## end real docker stuff ##
+
+ADD scripts /opt/${MULTICONTAINER_BUILD_IMAGE_ESCAPED}_scripts
+
+#run build time setup script
+RUN /opt/${MULTICONTAINER_BUILD_IMAGE_ESCAPED}_scripts/setup building
+RUN /opt/${MULTICONTAINER_BUILD_IMAGE_ESCAPED}_scripts/setup rust
+
+## real docker stuff ##
+
+
+
+## end real docker stuff ##
+
+ENTRYPOINT sh -c "/opt/setup_chain; cd $(dirname $DOCKER_EP); $DOCKER_EP"
