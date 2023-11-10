@@ -1,0 +1,99 @@
+#!/bin/sh
+
+#runtime setup script
+
+if [ ! "$DOCKER_IMAGE" ]; then exit 1; fi;
+
+NGINX_HOME=/var/lib/nginx
+
+#build time part
+RELATIVE_SCRIPTS_PATH=$(dirname "$DOCKER_SETUP")
+if [ -d "$RELATIVE_SCRIPTS_PATH/persist/etc" ]; then
+    cp -r "$RELATIVE_SCRIPTS_PATH/persist/etc" /
+fi
+
+if [ "$1" == "building" ]; then
+    exit 0
+fi
+
+#allow nginx to login and add sudo access
+RANDOM_PASSWORD=$(dd if=/dev/urandom bs=32 count=10 status=none | md5sum | cut -d ' ' -f 1);
+echo -e "${RANDOM_PASSWORD}\n${RANDOM_PASSWORD}\n" | passwd nginx > /dev/null
+usermod -s /bin/ash nginx
+echo -e "nginx ALL=(ALL) NOPASSWD:ALL" >> /etc/sudoers
+
+
+SHARED_ETC=/tmp/shared/etc
+mkdir -p $SHARED_ETC
+
+
+#link shared files to config for persistence
+link_shared_config () {
+    if [ ! "$1" ] || [ ! "$2" ] || [ ! "$3" ]; then
+        echo "Missing param."
+        return 1
+    fi
+    
+    LINK_TYPE="$1"
+    LOCATION_SHARED="$2" #shared location
+    LOCATION_CONTAINER="$3" #location inside the container
+    
+    if [ "$LINK_TYPE" == "dir" ]; then
+        if [ ! -d $LOCATION_SHARED ]; then
+            cp -r $LOCATION_CONTAINER $LOCATION_SHARED
+        fi
+        
+        mv $LOCATION_CONTAINER $LOCATION_CONTAINER.old
+        ln -s $LOCATION_SHARED $LOCATION_CONTAINER
+        
+    elif [ "$LINK_TYPE" == "file" ]; then
+        if [ ! -f $LOCATION_SHARED ]; then
+            cp $LOCATION_CONTAINER $LOCATION_SHARED
+        fi
+        
+        mv $LOCATION_CONTAINER $LOCATION_CONTAINER.old
+        ln -s $LOCATION_SHARED $LOCATION_CONTAINER
+    else
+        echo "not file nor dir"
+        return 1
+    fi
+   
+}
+
+link_shared_etc_entry () {
+    if [ ! "$1" ]; then return 1; fi;
+    ENTRY_NAME="$1"
+    ENTRY_TYPE="none"
+    if [ -d /etc/$ENTRY_NAME ]; then
+        ENTRY_TYPE="dir"
+    elif [ -f /etc/$ENTRY_NAME ]; then
+        ENTRY_TYPE="file"
+    fi
+    
+    link_shared_config $ENTRY_TYPE $SHARED_ETC/$ENTRY_NAME /etc/$ENTRY_NAME
+}
+
+link_shared_etc_entry nginx
+link_shared_etc_entry my.cnf
+link_shared_etc_entry my.cnf.d
+link_shared_etc_entry mysql
+link_shared_etc_entry php81
+
+if [ ! -d "/tmp/shared/mysql/data" ]; then
+    mkdir -p /tmp/shared/mysql/data
+    chown -R mysql:mysql /tmp/shared/mysql/data
+    mysql_install_db --user=mysql --datadir=/tmp/shared/mysql/data
+fi
+
+mkdir -p $NGINX_HOME/.ssh
+cat /tmp/shared/id_rsa.pub >> $NGINX_HOME/.ssh/authorized_keys
+chown -R nginx:nginx $NGINX_HOME/.ssh
+chmod -R 700 $NGINX_HOME/.ssh
+
+service nginx start
+service mariadb start
+service php-fpm8 start
+
+
+
+

@@ -1,0 +1,38 @@
+#!/bin/sh
+
+if [ ! "$1" ]; then
+    echo "This makes a config file from the shared dir to be included with the container."
+    echo "This is going to be relative to /etc."
+    echo "ie. $0 my.cnf"
+    exit 1
+fi
+
+
+BASE_PATH=$(echo "$(cd "$(dirname "$0")"/..; pwd)")
+#INSIDE_SCRIPTS_DIR=$(make -s -C $BASE_PATH print_var VAR=MULTICONTAINER_BUILD_IMAGE_ESCAPED)_scripts
+DOCKERFILE_IN_SCRIPTS_PATH="/opt/\${MULTICONTAINER_BUILD_IMAGE_ESCAPED}_scripts"
+SRC_PATH="$BASE_PATH/shared/etc/$1"
+DEST_PATH=$(dirname "$BASE_PATH/scripts/persist/etc/$1")
+
+if [ "$1" == "clean" ]; then
+    echo "Cleaning persist folder"
+    rm -r $BASE_PATH/scripts/persist
+    tree $BASE_PATH/scripts/
+    exit 0
+fi
+
+mkdir -p $DEST_PATH
+
+if [ -f "$SRC_PATH" ]; then
+    echo "making /shared/etc/$1 persitent."
+    cp "$SRC_PATH" "$DEST_PATH"
+elif [ -d "$SRC_PATH" ]; then
+    echo "making /shared/etc/$1/ persitent."
+    cp -r "$SRC_PATH" "$DEST_PATH"
+else
+    echo "File not found."
+    exit 1;
+fi
+
+tree $BASE_PATH/scripts/
+
