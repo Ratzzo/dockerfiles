@@ -54,7 +54,7 @@ link_shared_config () {
         mv $LOCATION_CONTAINER $LOCATION_CONTAINER.old
         ln -s $LOCATION_SHARED $LOCATION_CONTAINER
     else
-        echo "not file nor dir"
+        echo "not file nor dir: $LOCATION_SHARED"
         return 1
     fi
    
@@ -76,7 +76,6 @@ link_shared_etc_entry () {
 link_shared_etc_entry nginx
 link_shared_etc_entry my.cnf
 link_shared_etc_entry my.cnf.d
-link_shared_etc_entry mysql
 link_shared_etc_entry php81
 
 if [ ! -d "/tmp/shared/mysql/data" ]; then
@@ -90,10 +89,14 @@ cat /tmp/shared/id_rsa.pub >> $NGINX_HOME/.ssh/authorized_keys
 chown -R nginx:nginx $NGINX_HOME/.ssh
 chmod -R 700 $NGINX_HOME/.ssh
 
+#ready things for nginx unix socket
+mkdir -p /tmp/shared/run
+
 service nginx start
 service mariadb start
-service php-fpm8 start
+service php-fpm81 start
 
+chmod -R 777 /tmp/shared/run
 
 
 

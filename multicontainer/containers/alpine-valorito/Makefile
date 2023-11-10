@@ -2,18 +2,20 @@
 
 include ../../common/common_vars.mk
 #SQUASH=--squash
-MULTICONTAINER_BUILD_INHERIT_IMAGE=registry.ratzzo.net/ratzzo/alpine-openrc-3.18
+REGISTRY_CONTEXT=registry.ratzzo.net
+MULTICONTAINER_BUILD_INHERIT_IMAGE=$(REGISTRY_CONTEXT)/ratzzo/alpine-openrc-3.18
 #MULTICONTAINER_BUILD_INHERIT_IMAGE=ratzzo/alpine-openrc-3.14
 MULTICONTAINER_BUILD_DEPENDENCIES=
 MULTICONTAINER_RUN_COMMAND=podman run \
 --privileged \
--v $(MULTICONTAINER_WORKING_DIR)/shared:/tmp/shared \
 -v $(PWD)/scripts:/opt/$(MULTICONTAINER_BUILD_IMAGE_ESCAPED)_scripts \
 --env SSH_PORT=22 \
 --env SSH_KEEP_KEY=1 \
 -p 0.0.0.0:8888:80 \
 -p 0.0.0.0:2222:22 \
---rm -it $(MULTICONTAINER_BUILD_IMAGE)
+--rm -it $(REGISTRY_CONTEXT)/$(MULTICONTAINER_BUILD_IMAGE)
+
+#-v $(MULTICONTAINER_WORKING_DIR)/shared:/tmp/shared
 
 MULTICONTAINER_RUN_COMMAND_=podman run \
 --privileged \
