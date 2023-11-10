@@ -90,6 +90,7 @@ chown -R nginx:nginx $NGINX_HOME/.ssh
 chmod -R 700 $NGINX_HOME/.ssh
 
 #ready things for nginx unix socket
+rm -rf /tmp/shared/run/
 mkdir -p /tmp/shared/run
 
 service nginx start
