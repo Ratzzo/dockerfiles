@@ -76,7 +76,14 @@ link_shared_etc_entry () {
 link_shared_etc_entry nginx
 link_shared_etc_entry my.cnf
 link_shared_etc_entry my.cnf.d
-link_shared_etc_entry php81
+link_shared_etc_entry php82
+link_shared_etc_entry init.d
+link_shared_etc_entry rsyslog.conf
+
+if [ $TIMEZONE ]; then
+    echo setting timezone to "$TIMEZONE"
+    ln -s /usr/share/zoneinfo/"$TIMEZONE" /etc/localtime
+fi
 
 if [ ! -d "/tmp/shared/mysql/data" ]; then
     mkdir -p /tmp/shared/mysql/data
@@ -93,11 +100,18 @@ chmod -R 700 $NGINX_HOME/.ssh
 rm -rf /tmp/shared/run/
 mkdir -p /tmp/shared/run
 
-service nginx start
-service mariadb start
-service php-fpm81 start
+if [ -f /tmp/shared/post_setup ]; then
+. /tmp/shared/post_setup
+fi
 
-chmod -R 777 /tmp/shared/run
+#service rsyslog start
+#service nginx start
+#service mariadb start
+#service php-fpm82 start
+#service websocket-server start
+#service cronie start 
+
+#chmod -R 777 /tmp/shared/run
 
 
 

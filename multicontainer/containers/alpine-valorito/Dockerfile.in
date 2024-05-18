@@ -17,10 +17,10 @@ ENV DOCKER_EP=/opt/${MULTICONTAINER_BUILD_IMAGE_ESCAPED}_scripts/entrypoint
 
 ## real docker stuff ##
 
-RUN	apk add --no-cache shadow nginx mariadb mariadb-client php php-fpm php-curl \
-    php-enchant php-gd php-iconv php-imap php-intl php-ldap php-mysqli php-odbc \
-    php-opcache php-pdo_mysql php-pdo_sqlite php-soap php-sockets php-sqlite3 php-zip \
-    php-session php-json php-phar php-openssl php-pear php81-dev gcc musl-dev g++ make openssl-dev
+RUN	apk add --no-cache shadow nginx mariadb mariadb-client php82 php82-fpm php82-curl \
+    php82-enchant php82-gd php82-iconv php82-imap php82-intl php82-ldap php82-mysqli php82-odbc \
+    php82-opcache php82-pdo_mysql php82-pdo_sqlite php82-soap php82-sockets php82-sqlite3 php82-zip \
+    php82-session php82-json php82-phar php82-openssl php82-pear php82-dev php82-mbstring gcc musl-dev g++ make openssl-dev php82-dom
 RUN touch /run/openrc/started/networking /run/openrc/started/machine-id && pear update-channels
 
 #setup pear and install openswoole
@@ -32,6 +32,9 @@ RUN touch /run/openrc/started/networking /run/openrc/started/machine-id && pear 
 #enable coroutine postgres? [no] : n
 
 RUN echo -en "y\ny\ny\nn\ny\nn\n" | pecl install openswoole
+RUN pecl install igbinary
+RUN apk add --no-cache tzdata rsyslog php82-pcntl php82-posix
+RUN apk add --no-cache clang llvm ninja cmake musl-dev binutils gcc g++ wabt file python3 wasi-sdk lld imagemagick tesseract-ocr ghostscript cronie epoch nano miller gzip xz xz-dev php82-xdebug php82-ffi
 
 ## end real docker stuff ##
 

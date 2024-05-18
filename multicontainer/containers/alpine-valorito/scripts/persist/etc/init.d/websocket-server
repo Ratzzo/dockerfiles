@@ -1,0 +1,27 @@
+#!/sbin/openrc-run
+
+retry="60"
+pidfile="/tmp/websocket-server.pid"
+command="/bin/sh -c /tmp/shared/websocket-server.sh"
+command_args=""
+
+depend() {
+	use net
+	need localmount
+}
+
+start_pre() {
+
+}
+
+start_post() {
+
+}
+
+setup() {
+
+}
+
+getconf() {
+
+}
