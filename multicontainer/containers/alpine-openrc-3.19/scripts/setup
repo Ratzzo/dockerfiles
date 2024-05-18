@@ -1,0 +1,18 @@
+#!/bin/sh
+
+#runtime setup script
+
+if [ ! "$DOCKER_IMAGE" ]; then exit 1; fi;
+
+CONTAINER_USER="${CONTAINER_USER:=user}"
+
+#generate random password
+RANDOM_PASSWORD=$(dd if=/dev/urandom bs=32 count=10 status=none | md5sum | cut -d ' ' -f 1);
+
+#change passwords
+echo -e "${RANDOM_PASSWORD}\n${RANDOM_PASSWORD}\n" | passwd root > /dev/null
+echo -e "${RANDOM_PASSWORD}\n${RANDOM_PASSWORD}\n" | adduser $CONTAINER_USER > /dev/null
+
+#add container user to sudoers
+echo -e "$CONTAINER_USER ALL=(ALL) NOPASSWD: ALL" >> /etc/sudoers 
+
