@@ -7,12 +7,12 @@ if [ ! "$DOCKER_IMAGE" ]; then exit 1; fi;
 if [ "$1" == "wordpress" ]; then
     wget https://raw.githubusercontent.com/wp-cli/builds/gh-pages/phar/wp-cli.phar -O /usr/local/bin/wp
     chmod +x /usr/local/bin/wp
-    wget -q -O - https://wordpress.org/wordpress-5.8.3.tar.gz | tar xzv -C /srv
-    ln -s /usr/bin/php8 /usr/bin/php
+    wget -q -O - https://wordpress.org/wordpress-6.5.2.tar.gz | tar xzv -C /srv
+    # ln -s /usr/bin/php8 /usr/bin/php
     exit 0
 fi
 
-    #build time part
+#build time part
 RELATIVE_SCRIPTS_PATH=$(dirname "$DOCKER_SETUP")
 if [ -d "$RELATIVE_SCRIPTS_PATH/persist/etc" ]; then
     cp -r "$RELATIVE_SCRIPTS_PATH/persist/etc" /
