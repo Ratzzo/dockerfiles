@@ -1,0 +1,32 @@
+#boilerplate stuff
+FROM ${MULTICONTAINER_BUILD_INHERIT_IMAGE}
+
+#append old setup to setup chain
+#only passing redefined variables
+#inherited variables are kept
+RUN touch /opt/setup_chain && \
+    echo DOCKER_IMAGE=$DOCKER_IMAGE >> /opt/setup_chain && \
+    echo DOCKER_SETUP=$DOCKER_SETUP >> /opt/setup_chain && \
+    echo DOCKER_EP=$DOCKER_EP >> /opt/setup_chain && \
+    echo ${DOCKER_SETUP} >> /opt/setup_chain && \
+    chmod +x /opt/setup_chain || true
+    
+ENV DOCKER_IMAGE=${MULTICONTAINER_BUILD_IMAGE}
+ENV DOCKER_SETUP=/opt/${MULTICONTAINER_BUILD_IMAGE_ESCAPED}_scripts/setup
+ENV DOCKER_EP=/opt/${MULTICONTAINER_BUILD_IMAGE_ESCAPED}_scripts/entrypoint
+ADD scripts /opt/${MULTICONTAINER_BUILD_IMAGE_ESCAPED}_scripts
+
+## real docker stuff ##
+
+RUN	echo -e "https://dl-cdn.alpinelinux.org/alpine/edge/testing" >> /etc/apk/repositories && \
+	apk update && apk upgrade && apk add --no-cache openrc sudo ddclient
+
+RUN mkdir -p /run/openrc && \
+    touch /run/openrc/softlevel && \
+    rm /etc/init.d/hwdrivers && \
+    rc-status
+
+## end real docker stuff ##
+
+ENTRYPOINT []
+CMD []

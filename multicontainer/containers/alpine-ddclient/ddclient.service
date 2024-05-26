@@ -1,0 +1,18 @@
+[Unit]
+Description=Containerized ddclient service
+After=docker.service
+
+[Service]
+#Type=notify
+Environment=CONTAINER=registry.ratzzo.net/ratzzo/alpine-ddclient
+Environment=CONTAINER_DATA=/opt/container/ddclient
+ExecStart=/usr/bin/bash -c "\
+podman rm ddclient_service; podman run --name ddclient_service \
+-v ${CONTAINER_DATA}/shared:/tmp/shared \
+--network host \
+--rm -i ${CONTAINER} ddclient -file /tmp/shared/ddclient_config6 -daemon 600 -foreground"
+ExecStop=/usr/bin/bash -c "podman kill code_ddclient_service || true"
+#PrivateTmp=true
+
+[Install]
+WantedBy=multi-user.target

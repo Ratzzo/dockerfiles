@@ -1,0 +1,5 @@
+#!/bin/sh
+
+#runtime setup script
+
+if [ ! "$DOCKER_IMAGE" ]; then exit 1; fi;
