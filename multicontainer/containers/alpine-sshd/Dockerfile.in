@@ -19,13 +19,8 @@ ADD scripts /opt/${MULTICONTAINER_BUILD_IMAGE_ESCAPED}_scripts
 ## real docker stuff ##
 
 RUN	echo -e "https://dl-cdn.alpinelinux.org/alpine/edge/testing" >> /etc/apk/repositories && \
-	apk add --no-cache openrc openssh sudo #tcc musl-dev zlib-dev
-
-RUN mkdir -p /run/openrc && \
-    touch /run/openrc/softlevel && \
-    rm /etc/init.d/hwdrivers && \
-    rc-status
-
+	apk add --no-cache openrc openssh sudo
+    
 ## end real docker stuff ##
 
 ENTRYPOINT sh -c "/opt/setup_chain; cd $(dirname $DOCKER_EP); $DOCKER_EP"

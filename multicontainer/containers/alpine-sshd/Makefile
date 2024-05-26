@@ -2,7 +2,7 @@
 
 include ../../common/common_vars.mk
 
-MULTICONTAINER_BUILD_INHERIT_IMAGE=alpine:edge
+MULTICONTAINER_BUILD_INHERIT_IMAGE=registry.ratzzo.net/ratzzo/alpine-openrc-edge
 MULTICONTAINER_BUILD_DEPENDENCIES=
 MULTICONTAINER_RUN_COMMAND=docker run \
 --privileged \
