@@ -13,7 +13,7 @@ MULTICONTAINER_RUN_COMMAND=podman run \
 --env SSH_KEEP_KEY=1 \
 -p 0.0.0.0:8888:80 \
 -p 0.0.0.0:2222:22 \
---rm -it $(MULTICONTAINER_BUILD_IMAGE)
+--rm -it registry.ratzzo.net/$(MULTICONTAINER_BUILD_IMAGE)
 
 MULTICONTAINER_RUN_COMMAND_=podman run \
 --privileged \

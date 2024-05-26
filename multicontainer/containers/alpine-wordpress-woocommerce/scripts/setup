@@ -77,7 +77,7 @@ link_shared_etc_entry nginx
 link_shared_etc_entry my.cnf
 link_shared_etc_entry my.cnf.d
 link_shared_etc_entry mysql
-link_shared_etc_entry php8
+link_shared_etc_entry php83
 
 link_shared_config dir /tmp/shared/wordpress /srv/wordpress
 chown nginx:nginx -R /tmp/shared/wordpress
@@ -100,7 +100,7 @@ usermod -s /bin/ash nginx
 
 service nginx start
 service mariadb start
-service php-fpm8 start
+service php-fpm83 start
 
 if [ ! -f "/tmp/shared/database" ]; then
     echo "DROP DATABASE IF EXISTS wordpress; CREATE DATABASE wordpress; DROP USER IF EXISTS 'wordpress'@'localhost'; CREATE USER 'wordpress'@'localhost' IDENTIFIED BY 'wordpress'; GRANT ALL PRIVILEGES ON * . * TO 'wordpress'@'localhost'; FLUSH PRIVILEGES;" | mysql
