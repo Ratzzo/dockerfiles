@@ -34,7 +34,8 @@ RUN touch /run/openrc/started/networking /run/openrc/started/machine-id && pear 
 RUN echo -en "y\ny\ny\nn\ny\nn\n" | pecl install openswoole
 RUN pecl install igbinary
 RUN apk add --no-cache tzdata rsyslog php82-pcntl php82-posix
-RUN apk add --no-cache clang llvm ninja cmake musl-dev binutils gcc g++ wabt file python3 wasi-sdk lld imagemagick tesseract-ocr ghostscript cronie epoch nano miller gzip xz xz-dev php82-xdebug php82-ffi
+RUN apk add --no-cache clang llvm ninja cmake musl-dev binutils gcc g++ wabt file python3 wasi-sdk lld imagemagick tesseract-ocr ghostscript poppler-utils cronie epoch nano miller gzip xz xz-dev php82-xdebug php82-ffi curl libcurl
+RUN apk add --no-cache openssh screen zip php82-ctype
 
 ## end real docker stuff ##
 

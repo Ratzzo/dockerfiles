@@ -1,0 +1,7 @@
+#!/bin/sh
+
+if [ ! "$DOCKER_IMAGE" ]; then exit 1; fi;
+
+./setup 
+
+# su $CONTAINER_USER -c "cd ~ && sh"

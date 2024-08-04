@@ -8,11 +8,12 @@ SSHDIR=/tmp/shared
 ALGO=rsa
 BITS=2048
 SSH_PORT="${SSH_PORT:=22}"
-CONTAINER_USER="${CONTAINER_USER:=user}"
+CONTAINER_USER="${CONTAINER_USER:=root}"
 
 #change sshd port
 sed -i "s/#Port 22/Port $SSH_PORT/" /etc/ssh/sshd_config
 sed -i "s/#StrictModes yes/StrictModes no/" /etc/ssh/sshd_config
+# sed -i "s/#PermitRootLogin prohibit-password/PermitRootLogin yes/" /etc/ssh/sshd_config
 
 #generate random password
 RANDOM_PASSWORD=$(dd if=/dev/urandom bs=32 count=10 status=none | md5sum | cut -d ' ' -f 1);
@@ -24,7 +25,7 @@ echo -e "${RANDOM_PASSWORD}\n${RANDOM_PASSWORD}\n" | adduser $CONTAINER_USER > /
 #add container user to sudoers
 echo -e "$CONTAINER_USER ALL=(ALL) NOPASSWD: ALL" >> /etc/sudoers 
 
-if [ ! "$SSH_KEEP_KEY" ] || [ ! -f $SSHDIR/id_$ALGO ]; then
+if [ ! "$SSH_KEEP_KEY" ] || [ ! -f $SSHDIR/authorized_keys ]; then
     mkdir -p $SSHDIR
     rm -f $SSHDIR/id_$ALGO
     rm -f $SSHDIR/id_$ALGO.pub
@@ -38,4 +39,4 @@ else
      su $CONTAINER_USER -c "mkdir -p ~/.ssh/; cp $SSHDIR/authorized_keys ~/.ssh/authorized_keys; cd ~ && chmod 700 -R .ssh"
 fi
 
-service sshd start
+/usr/sbin/sshd -D -e
