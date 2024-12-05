@@ -37,6 +37,7 @@ then
     fi
     
     echo "${_USER} ALL=(ALL:ALL) NOPASSWD:ALL" >> /etc/sudoers
+    usermod -d /tmp/shared $_USER
     
 fi
 
