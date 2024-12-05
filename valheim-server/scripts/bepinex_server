@@ -14,8 +14,18 @@ env
 
 cd /home/steam/valheim-server 
 
-export templdpath=$LD_LIBRARY_PATH
-export LD_LIBRARY_PATH=./linux64:$LD_LIBRARY_PATH
+export LD_LIBRARY_PATH=$templdpath
+
+export DOORSTOP_ENABLE=TRUE
+export DOORSTOP_INVOKE_DLL_PATH=./BepInEx/core/BepInEx.Preloader.dll
+export DOORSTOP_CORLIB_OVERRIDE_PATH=./unstripped_corlib
+
+export LD_LIBRARY_PATH="./doorstop_libs:$LD_LIBRARY_PATH"
+export LD_PRELOAD="libdoorstop_x64.so:$LD_PRELOAD"
+####
+
+
+export LD_LIBRARY_PATH="./linux64:$LD_LIBRARY_PATH"
 export SteamAppId=892970
 
 echo "Starting server PRESS CTRL-C to exit"
@@ -25,7 +35,7 @@ echo "Starting server PRESS CTRL-C to exit"
 # NOTE: You need to make sure the ports 2456-2458 is being forwarded to your server through your local router & firewall.
 ./valheim_server.x86_64 -nographics -name $SERVER_NAME -port $SERVER_PORT -world $SERVER_WORLD_NAME -password $SERVER_PW -public $SERVER_PUBLIC
 
-export LD_LIBRARY_PATH=$templdpath
+
 
 
 

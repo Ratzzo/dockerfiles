@@ -1,0 +1,3 @@
+#!/bin/sh
+
+docker run --rm --network host -v $PWD/shared:/opt/shared -it ratzzo/alpine-static-openssh 

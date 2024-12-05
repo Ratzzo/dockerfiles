@@ -10,7 +10,7 @@ RUN touch /opt/setup_chain && \
     echo DOCKER_EP=$DOCKER_EP >> /opt/setup_chain && \
     echo ${DOCKER_SETUP} >> /opt/setup_chain && \
     chmod +x /opt/setup_chain || true
-    
+
 ENV DOCKER_IMAGE=${MULTICONTAINER_BUILD_IMAGE}
 ENV DOCKER_SETUP=/opt/${MULTICONTAINER_BUILD_IMAGE_ESCAPED}_scripts/setup
 ENV DOCKER_EP=/opt/${MULTICONTAINER_BUILD_IMAGE_ESCAPED}_scripts/entrypoint
@@ -35,7 +35,8 @@ RUN echo -en "y\ny\ny\nn\ny\nn\n" | pecl install openswoole
 RUN pecl install igbinary
 RUN apk add --no-cache tzdata rsyslog php82-pcntl php82-posix
 RUN apk add --no-cache clang llvm ninja cmake musl-dev binutils gcc g++ wabt file python3 wasi-sdk lld imagemagick tesseract-ocr ghostscript poppler-utils cronie epoch nano miller gzip xz xz-dev php82-xdebug php82-ffi curl libcurl
-RUN apk add --no-cache openssh screen zip php82-ctype
+RUN apk add --no-cache openssh screen zip php82-ctype qpdf tesseract-ocr-data-spa msttcorefonts-installer fontconfig && update-ms-fonts && fc-cache -f
+RUN apk add --no-cache coreutils npm php82-sysvmsg php82-sysvshm php82-sysvsem php82-fileinfo php82-simplexml php82-xmlreader php82-xmlwriter && npm install juice -g && npm install minify -g
 
 ## end real docker stuff ##
 
