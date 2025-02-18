@@ -46,7 +46,7 @@ MULTICONTAINER_QUICK_RUN_COMMAND?=$(MULTICONTAINER_RUN_COMMAND)
 MULTICONTAINER_BUILD_OUTDIR?=out
 
 MULTICONTAINER_BUILD_PLATFORMS?=$(shell OS=$$(uname -o); 		\
-					if [ "$$OS" == "GNU/Linux" ]; 	\
+					if [ "$$OS" = "GNU/Linux" ]; 	\
 					then 				\
 						echo -n "linux/"; 	\
 					else 				\
